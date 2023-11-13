@@ -33,6 +33,10 @@ defineModule(sim, list(
                     "[If using 'climateGCM = CCSM4', climateSSP must be one of 45 or 85.]"),
     defineParameter("historicalFireYears", "numeric", default = 1991:2020, NA, NA,
                     desc = "range of years captured by the historical climate data"),
+    defineParameter("NTwithNU", "logic", default = TRUE, NA, NA,
+                    desc = paste0("Specify if NT and NU should be merged. Default for WBI analysis",
+                                  " Setting to FALSE might cause error if NU is required")),
+    #TODO Remove this parameter when provide the option of NWT and NU to be done separately.
     defineParameter("projectedFireYears", "numeric", default = 2011:2100, NA, NA,
                     desc = "range of years captured by the projected climate data"),
     defineParameter("studyAreaName", "character", NA_character_, NA, NA,
@@ -132,6 +136,7 @@ Init <- function(sim) {
                     country = "CAN", level = 1, path = dPath,
                     targetFile = "gadm36_CAN_1_sp.rds", ## TODO: will change as GADM data update
                     destinationPath = dPath,
+                    purge = 7,
                     useCache = P(sim)$.useCache) |>
     sf::st_as_sf() |>
     sf::st_transform(mod$targetCRS)
@@ -147,6 +152,22 @@ Init <- function(sim) {
                 "Northwest Territories & Nunavut", "Northwest Territories & Nunavut",
                 "Ontario", "Quebec", "Saskatchewan", "Yukon") ## no accents; NT+NU together
   )
+  if (P(sim)$NTwithNU){
+    ## no accents; NT+NU together, so shortname and longname need to be adjusted accordingly
+    ## otherwise using them later creates errors (i.e., 5 names while only 4 links)
+    ## TODO Provide links to both study areas separately at some point
+    provsWithData <- data.frame(
+      shortName = c("AB", "BC", "MB", "NT", "ON", "QC", "SK", "YT"),
+      longName = c("Alberta", "British Columbia", "Manitoba",
+                 "Northwest Territories", 
+                 "Ontario", "Québec", "Saskatchewan", "Yukon"),
+      dirName = c("Alberta", "British Columbia", "Manitoba",
+                "Northwest Territories & Nunavut", 
+                "Ontario", "Quebec", "Saskatchewan", "Yukon") ## no accents; NT+NU together
+  )
+      whereAmI <- whereAmI[!whereAmI %in% "Nunavut"]
+    
+  }
 
   stopifnot(all(whereAmI %in% provsWithData$longName))
 
@@ -221,8 +242,33 @@ Init <- function(sim) {
 
     ## need to download and extract w/o prepInputs to preserve folder structure!
     if (!file.exists(historicalClimateArchive)) {
-      googledrive::drive_download(file = as_id(historicalClimateURL[[prov]]), path = historicalClimateArchive)
+      # TM ~ I added the catch below to avoid stalling. Ideally, one day we will solve the 
+      # gdrive downloading problem altogether. 
+      message(paste0("The file '", basename(historicalClimateArchive), "' doesn't exist in ", 
+                     dirname(historicalClimateArchive), ". Trying to download it from google drive..."))
+      tryCatch({R.utils::withTimeout({expr = googledrive::drive_download(file = as_id(historicalClimateURL[[prov]]),
+                                                                         path = historicalClimateArchive)},
+                                     timeout = 1800, 
+                                     onTimeout = "error")}, 
+               error = function(e){
+                 unlink(historicalClimateArchive)
+                 stop(paste0("The download of the file '", basename(historicalClimateArchive), 
+                             "' via googledrive was unsuccessful, most likely due to its size. ",
+                             "This issue is a known challenge when dealing with larger files and",
+                             " an unstable internet connection. The module will make no further attempts to ",
+                             "download it. Please download it manually from ",
+                             paste0("https://drive.google.com/file/d/", historicalClimateURL[[prov]]), 
+                             ", save it as ", historicalClimateArchive,
+                             ". There is no need to unzip it. Please re-run the module once ",
+                             "the file has been placed in the correct folder."))
+               }
+      )
       archive::archive_extract(historicalClimateArchive, historicalClimatePath)
+    } else {
+      if (all(file.exists(historicalClimateArchive),
+              !dir.exists(file.path(dirname(historicalClimateArchive), 
+                                          mod$studyAreaNameDir[[prov]]))))
+        archive::archive_extract(historicalClimateArchive, historicalClimatePath)
     }
 
     ## all downstream stuff from this one archive file should have same Cache assessment
@@ -280,8 +326,33 @@ Init <- function(sim) {
 
     ## need to download and extract w/o prepInputs to preserve folder structure!
     if (!file.exists(projectedClimateArchive)) {
-      googledrive::drive_download(file = as_id(projectedClimateUrl[[prov]]), path = projectedClimateArchive)
+      # TM ~ I added the catch below to avoid stalling. Ideally, one day we will solve the 
+      # gdrive downloading problem altogether. 
+      message(paste0("The file '", basename(projectedClimateArchive), "' doesn't exist in ", 
+                     dirname(projectedClimateArchive), ". Trying to download it from google drive..."))
+      tryCatch({R.utils::withTimeout({expr = googledrive::drive_download(file = as_id(projectedClimateUrl[[prov]]),
+                                                                         path = projectedClimateArchive)},
+                                     timeout = 1800, 
+                                     onTimeout = "error")}, 
+               error = function(e){
+                 unlink(projectedClimateArchive)
+                 stop(paste0("The download of the file '", basename(projectedClimateArchive), 
+                             "' via googledrive was unsuccessful, most likely due to its size. ",
+                             "This issue is a known challenge when dealing with larger files and",
+                             " an unstable internet connection. The module will make no further attempts to ",
+                             "download it. Please download it manually from ",
+                             paste0("https://drive.google.com/file/d/", projectedClimateUrl[[prov]]), 
+                             ", save it as ", projectedClimateArchive,
+                             ". There is no need to unzip it. Please re-run the module once ",
+                             "the file has been placed in the correct folder."))
+               }
+      )
       archive::archive_extract(projectedClimateArchive, projectedClimatePath)
+    } else {
+      if (all(file.exists(projectedClimateArchive),
+              !dir.exists(file.path(dirname(projectedClimateArchive), 
+                                    mod$studyAreaNameDir[[prov]]))))
+        archive::archive_extract(projectedClimateArchive, projectedClimatePath)
     }
     digestFiles <- digest::digest(file = projectedClimateArchive, algo = "xxhash64")
     digestYears <- CacheDigest(list(P(sim)$projectedFireYears))$outputHash
@@ -324,9 +395,33 @@ Init <- function(sim) {
     normalsClimateArchive <- file.path(normalsClimatePath, paste0(mod$studyAreaNameDir[[prov]], "_normals.zip"))
 
     if (!file.exists(normalsClimateArchive)) {
-      ## need to download and extract w/o prepInputs to preserve folder structure!
-      googledrive::drive_download(file = as_id(normalsClimateUrl), path = normalsClimateArchive)
+      # TM ~ I added the catch below to avoid stalling. Ideally, one day we will solve the 
+      # gdrive downloading problem altogether. 
+      message(paste0("The file '", basename(normalsClimateArchive), "' doesn't exist in ", 
+                     dirname(normalsClimateArchive), ". Trying to download it from google drive..."))
+      tryCatch({R.utils::withTimeout({expr = googledrive::drive_download(file = as_id(normalsClimateUrl[[prov]]),
+                                                                         path = normalsClimateArchive)},
+                                     timeout = 1800, 
+                                     onTimeout = "error")}, 
+               error = function(e){
+                 unlink(normalsClimateArchive)
+                 stop(paste0("The download of the file '", basename(normalsClimateArchive), 
+                             "' via googledrive was unsuccessful, most likely due to its size. ",
+                             "This issue is a known challenge when dealing with larger files and",
+                             " an unstable internet connection. The module will make no further attempts to ",
+                             "download it. Please download it manually from ",
+                             paste0("https://drive.google.com/file/d/", normalsClimateUrl[[prov]]), 
+                             ", save it as ", normalsClimateArchive,
+                             ". There is no need to unzip it. Please re-run the module once ",
+                             "the file has been placed in the correct folder."))
+               }
+      )
       archive::archive_extract(normalsClimateArchive, normalsClimatePath)
+    } else {
+      if (all(file.exists(normalsClimateArchive),
+              !dir.exists(file.path(dirname(normalsClimateArchive), 
+                                    mod$studyAreaNameDir[[prov]]))))
+        archive::archive_extract(normalsClimateArchive, normalsClimatePath)
     }
 
     Cache(
@@ -354,8 +449,33 @@ Init <- function(sim) {
 
     if (!file.exists(projAnnualClimateArchive)) {
       ## need to download and extract w/o prepInputs to preserve folder structure!
-      googledrive::drive_download(file = as_id(projAnnualClimateUrl), path = projAnnualClimateArchive)
+      # TM ~ I added the catch below to avoid stalling. Ideally, one day we will solve the 
+      # gdrive downloading problem altogether. 
+      message(paste0("The file '", basename(projAnnualClimateArchive), "' doesn't exist in ", 
+                     dirname(projAnnualClimateArchive), ". Trying to download it from google drive..."))
+      tryCatch({R.utils::withTimeout({expr = googledrive::drive_download(file = as_id(projAnnualClimateUrl[[prov]]),
+                                                                         path = projAnnualClimateArchive)},
+                                     timeout = 1800, 
+                                     onTimeout = "error")}, 
+               error = function(e){
+                 unlink(projAnnualClimateArchive)
+                 stop(paste0("The download of the file '", basename(projAnnualClimateArchive), 
+                             "' via googledrive was unsuccessful, most likely due to its size. ",
+                             "This issue is a known challenge when dealing with larger files and",
+                             " an unstable internet connection. The module will make no further attempts to ",
+                             "download it. Please download it manually from ",
+                             paste0("https://drive.google.com/file/d/", projAnnualClimateUrl[[prov]]), 
+                             ", save it as ", projAnnualClimateArchive,
+                             ". There is no need to unzip it. Please re-run the module once ",
+                             "the file has been placed in the correct folder."))
+               }
+      )
       archive::archive_extract(projAnnualClimateArchive, projAnnualClimatePath)
+    } else {
+      if (all(file.exists(projAnnualClimateArchive),
+              !dir.exists(file.path(dirname(projAnnualClimateArchive), 
+                                    mod$studyAreaNameDir[[prov]]))))
+        archive::archive_extract(projAnnualClimateArchive, projAnnualClimatePath)
     }
 
     Cache(makeLandRCS_projectedCMIandATA,
