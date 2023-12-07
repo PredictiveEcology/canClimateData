@@ -5,4 +5,4 @@
 !.gitignore
 !CHECKSUMS.txt
 !climateDataURLs.csv
-
+!tiles.gpkg
