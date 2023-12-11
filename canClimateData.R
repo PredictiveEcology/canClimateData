@@ -321,8 +321,8 @@ Init <- function(sim) {
                      digestSA_RTM = digestSA_RTM,
                      leadingArea = leadingArea)
 
-  omitArgs <- c("rasterToMatch", "studyArea")
   quick <- c("climatePath")
+  omitArgs <- c("rasterToMatch", "studyArea")
 
   # The 4 steps below can be put into a loop, but this is perhaps clearer to see each step,
   #  particularly with the different assignments to sim$
