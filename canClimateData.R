@@ -163,7 +163,7 @@ InitWithPrepInputs <- function(sim) {
     sf::st_transform(mod$targetCRS)
 
   whereAmI <- postProcessTo(from = canProvs, to = sim$studyArea) |>
-    Cache(omitArgs = "from") |> # canProvs will never vary
+    Cache(omitArgs = "from") |> ## canProvs shouldn't vary unless updated above
     (function(x) x$NAME_1)() |>
     gsub("Nunavut", "Northwest Territories", x = _) |> ## NT+NU together
     unique()
