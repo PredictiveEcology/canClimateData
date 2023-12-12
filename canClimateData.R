@@ -71,7 +71,7 @@ defineModule(sim, list(
     expectsInput("rasterToMatchReporting", "SpatRaster",
                  desc = "template raster for reporting area", sourceURL = NA),
     expectsInput("studyArea", "sf",
-                 desc = "study area used for simulation",
+                 desc = "study area used for simulation (buffered to mitigate edge effects)",
                  sourceURL = NA),
     expectsInput("studyAreaReporting", "sf",
                  desc = "study area used for reporting/post-processing", sourceURL = NA)
