@@ -51,7 +51,7 @@ defineModule(sim, list(
                     "There are currently two ways to run this module: using `reproducible::prepInputs` and ",
                     "a custom approach using googledrive directly. The direct googledrive approach was the ",
                     "original approach; `usePrepInputs = TRUE` is a rewrite from that original code. On Dec 11, 2023, ",
-                    "the two ways would be similar, but they may diverge over time.")
+                    "the two ways would be similar, but they may diverge over time."),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA,
                     "Describes the simulation time at which the first plot event should occur."),
     defineParameter(".plotInterval", "numeric", NA, NA, NA,
