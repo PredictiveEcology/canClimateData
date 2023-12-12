@@ -68,8 +68,6 @@ defineModule(sim, list(
   inputObjects = bindrows(
     expectsInput("rasterToMatch", "SpatRaster",
                  desc = "template raster", sourceURL = NA),
-    expectsInput("rasterToMatchLarge", "SpatRaster",
-                 desc = "template raster for larger area", sourceURL = NA),
     expectsInput("rasterToMatchReporting", "SpatRaster",
                  desc = "template raster for reporting area", sourceURL = NA),
     expectsInput("studyArea", "sf",
@@ -331,7 +329,7 @@ InitWithPrepInputs <- function(sim) {
   commonArgs <- list(studyAreaNamesShort = mod$studyAreaNameShort,
                      studyAreaNamesLong = mod$studyAreaNameDir,
                      studyAreaName = P(sim)$studyAreaName,
-                     rasterToMatch = sim$rasterToMatchLarge, studyArea = sim$studyArea,
+                     rasterToMatch = sim$rasterToMatch, studyArea = sim$studyArea,
                      currentModuleName = currentModule(sim),
                      digestSA_RTM = digestSA_RTM,
                      leadingArea = leadingArea)
@@ -431,17 +429,6 @@ InitWithPrepInputs <- function(sim) {
                                useCache = P(sim)$.useCache,
                                filename2 = NULL)
     writeRaster(sim$rasterToMatch, file.path(dPath, paste0(P(sim)$studyAreaName, "_rtm.tif")),
-                datatype = "INT1U", overwrite = TRUE)
-  }
-
-  if (!suppliedElsewhere("rasterToMatchLarge", sim)) {
-    sim$rasterToMatchLarge <- Cache(LandR::prepInputsLCC,
-                                    year = 2005,
-                                    studyArea = sim$studyArea,
-                                    destinationPath = dPath,
-                                    useCache = P(sim)$.useCache,
-                                    filename2 = NULL)
-    writeRaster(sim$rasterToMatchLarge,  file.path(dPath, paste0(P(sim)$studyAreaName, "_rtml.tif")),
                 datatype = "INT1U", overwrite = TRUE)
   }
 
