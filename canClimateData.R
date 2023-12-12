@@ -25,7 +25,7 @@ defineModule(sim, list(
                   "PredictiveEcology/SpaDES.tools@development (>= 2.0.4.9002)"),
   parameters = rbind(
     defineParameter("bufferDist", "numeric", 20000, NA, NA,
-                    "Distance (m) to buffer `studyArea` and `rasterToMatch` when creating 'Large' versions."),
+                    "Distance (m) to buffer `studyArea` and `rasterToMatch`."),
     defineParameter("climateGCM", "character", "CNRM-ESM2-1", NA, NA,
                     paste("Global Circulation Model to use for climate projections:",
                           "currently '13GCMs_ensemble', 'CanESM5', 'CNRM-ESM2-1', or 'CCSM4'.")),
@@ -54,16 +54,12 @@ defineModule(sim, list(
   ),
   inputObjects = bindrows(
     expectsInput("rasterToMatch", "SpatRaster",
-                 desc = "template raster", sourceURL = NA),
-    expectsInput("rasterToMatchLarge", "SpatRaster",
-                 desc = "template raster for larger area", sourceURL = NA),
+                 desc = "template raster corresponding to `studyArea`.", sourceURL = NA),
     expectsInput("rasterToMatchReporting", "SpatRaster",
-                 desc = "template raster for reporting area", sourceURL = NA),
+                 desc = "template raster corresponding to `studyAreaReporting`.", sourceURL = NA),
     expectsInput("studyArea", "sf",
                  desc = "study area used for simulation (buffered to mitigate edge effects)",
                  sourceURL = NA),
-    expectsInput("studyAreaLarge", "sf",
-                 desc = "study area used for module parameterization (buffered)", sourceURL = NA),
     expectsInput("studyAreaReporting", "sf",
                  desc = "study area used for reporting/post-processing", sourceURL = NA)
   ),
@@ -453,12 +449,7 @@ Init <- function(sim) {
   }
 
   if (!suppliedElsewhere("studyArea", sim)) {
-    ## NOTE: studyArea and studyAreaLarge are the same [buffered] area
     sim$studyArea <- sf::st_buffer(sim$studyArea, P(sim)$bufferDist)
-  }
-
-  if (!suppliedElsewhere("studyAreaLarge", sim)) {
-    sim$studyAreaLarge <- sim$studyArea
   }
 
   if (is.na(P(sim)$studyAreaName)) {
@@ -474,17 +465,6 @@ Init <- function(sim) {
                                useCache = P(sim)$.useCache,
                                filename2 = NULL)
     writeRaster(sim$rasterToMatch, file.path(dPath, paste0(P(sim)$studyAreaName, "_rtm.tif")),
-                datatype = "INT1U", overwrite = TRUE)
-  }
-
-  if (!suppliedElsewhere("rasterToMatchLarge", sim)) {
-    sim$rasterToMatchLarge <- Cache(LandR::prepInputsLCC,
-                                    year = 2005,
-                                    studyArea = sim$studyAreaLarge,
-                                    destinationPath = dPath,
-                                    useCache = P(sim)$.useCache,
-                                    filename2 = NULL)
-    writeRaster(sim$rasterToMatchLarge,  file.path(dPath, paste0(P(sim)$studyAreaName, "_rtml.tif")),
                 datatype = "INT1U", overwrite = TRUE)
   }
 
