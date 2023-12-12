@@ -451,6 +451,7 @@ InitWithPrepInputs <- function(sim) {
                 datatype = "INT1U", overwrite = TRUE)
   }
 
+  return(invisible(sim))
 }
 
 InitWithDirectDownload <- function(sim) {
