@@ -8,7 +8,7 @@ defineModule(sim, list(
   authors = c(
     person("Ian", "Eddy", email = "ian.eddy@nrcan-rncan.gc.ca", role = "aut"),
     person("Alex M", "Chubaty", email = "achubaty@for-cast.ca", role = c("aut", "cre")),
-    person("Eliot", "McIntire", email = "eliot.mcintire@nrcan-rncan.gc.ca", role = "ctb"),
+    person("Eliot", "McIntire", email = "eliot.mcintire@nrcan-rncan.gc.ca", role = "aut"),
     person("Tati", "Micheletti", email = "tati.micheletti@gmail.com", role = "ctb")
   ),
   childModules = character(0),
@@ -44,6 +44,10 @@ defineModule(sim, list(
                     desc = "range of years captured by the historical climate data"),
     defineParameter("projectedFireYears", "numeric", default = 2011:2100, NA, NA,
                     desc = "range of years captured by the projected climate data"),
+    defineParameter("quickCheck", "logical", default = TRUE, NA, NA,
+                    desc = "prepClimateData uses `prepInputs` internally; set this to `TRUE` to avoid ",
+                    "the slow process of digesting potentially MANY files. This will use file.size only, ",
+                    "if TRUE"),
     defineParameter("studyAreaName", "character", NA_character_, NA, NA,
                     paste("User-defined label for the current stuyd area.",
                           "If `NA`, a hash of `studyArea` will be used.")),
@@ -310,7 +314,7 @@ Init <- function(sim) {
   climateEraArgs <- purrr::transpose(listNamed(climateType, climateYears, climatePath, climateURLs, fun, climateVar))
 
   if (is.null(P(sim)$leadingArea))
-    leadingArea <- mod$studyAreaNameShort else 
+    leadingArea <- mod$studyAreaNameShort else
       leadingArea <- P(sim)$leadingArea
 
   commonArgs <- list(studyAreaNamesShort = mod$studyAreaNameShort,
@@ -320,6 +324,11 @@ Init <- function(sim) {
                      currentModuleName = currentModule(sim),
                      digestSA_RTM = digestSA_RTM,
                      leadingArea = leadingArea)
+
+  if (isTRUE(Par$quickCheck)) {
+    opts <- options(reproducible.quickCheck = TRUE)
+    on.exit(options(opts), add = TRUE)
+  }
 
   quick <- c("climatePath")
   omitArgs <- c("rasterToMatch", "studyArea")
