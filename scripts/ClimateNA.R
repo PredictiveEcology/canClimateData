@@ -167,8 +167,8 @@ future_lapply(dem_ff, function(f) {
 # get ClimateNA historic time series ----------------------------------------------------------
 
 MSYs <- c("MSY", "M", "Y")
-# period_ann <- paste0("Year_", 1991:2022, ".ann")
-period_ann <- paste0("Year_", 1901:1990, ".ann")
+# period_ann <- paste0("Year_", 1901:1990, ".ann")
+period_ann <- paste0("Year_", 1991:2022, ".ann")
 
 future_lapply(dem_ff, function(f) {
   f <- normalizePath(f)
