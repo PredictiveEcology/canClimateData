@@ -239,7 +239,7 @@ if (createZips) {
     dem_ff <- list.files(file.path(ClimateNAdata, "tiled", "dem"), pattern = "[.]asc$", full.names = TRUE)
   }
 
-  tweak("callr", workers = parallelly::availableCores() / 2)
+  plan("callr", workers = parallelly::availableCores() / 2)
 
   ## normals
 
