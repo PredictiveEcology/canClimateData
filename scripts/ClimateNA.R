@@ -29,10 +29,10 @@ ClimateNAdata <- switch(Sys.info()[["sysname"]],
                         Windows = "C:/ClimateNA_data")
 stopifnot(dir.exists(ClimateNAdata))
 
+dPath <- "data"
+
 createTiles <- FALSE # TRUE
 createZips <- FALSE # TRUE
-
-dPath <- "data"
 
 googledrive::drive_auth(email = "achubaty@for-cast.ca")
 
@@ -85,7 +85,7 @@ if (isTRUE(createTiles)) {
   dem_ff <- makeTiles(
     x = gtopo30N,
     y = vect(tiles[idx]),
-    filename = file.path(ClimateNAdata, "can_dem_.asc"),
+    filename = file.path(file.path(ClimateNAdata, "tiled", "dem"), "can_dem_.asc"),
     na.rm = TRUE
   )
 
@@ -130,7 +130,7 @@ if (isTRUE(createTiles)) {
 plan("callr", workers = parallelly::availableCores())
 
 if (!exists("dem_ff")) {
-  dem_ff <- list.files(ClimateNAdata, pattern = "[.]asc$", full.names = TRUE)
+  dem_ff <- list.files(file.path(ClimateNAdata, "tiled", "dem"), pattern = "[.]asc$", full.names = TRUE)
 }
 
 # get ClimateNA normals -----------------------------------------------------------------------
