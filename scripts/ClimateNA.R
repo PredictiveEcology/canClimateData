@@ -243,49 +243,37 @@ if (createZips) {
 
   ## normals
 
-  MSYs <- c("Y")
-  period_nrm <- c(
-    "Normal_1901_1930.nrm",
-    "Normal_1911_1940.nrm",
-    "Normal_1921_1950.nrm",
-    "Normal_1931_1960.nrm",
-    "Normal_1941_1970.nrm",
-    "Normal_1951_1980.nrm", ## LandR.CS/fireSense
-    "Normal_1971_2000.nrm",
-    "Normal_1981_2010.nrm", ## LandR.CS/fireSense
-    "Normal_1991_2020.nrm"
-  )
+  MSYs <- c("Y") ## TODO: allow other normals types? requires updates to ClimateNA_path()
 
   zip_normals <- future_lapply(dem_ff, function(f) {
     f <- normalizePath(f)
 
     lapply(MSYs, function(msy) {
-      lapply(period_nrm, function(nrm) {
-        ClimateNAout <- ClimateNA_path(ClimateNAdata, tile = tileID(f), type = "normals")
-        fzip <- paste0(ClimateNAout, "_normals.zip")
+      ClimateNAout <- ClimateNA_path(ClimateNAdata, tile = tileID(f), type = "normals")
+      fzip <- paste0(ClimateNAout, "_normals.zip")
 
-        archive_write_dir(archive = fzip, dir = ClimateNAout)
-      })
+      archive_write_dir(archive = fzip, dir = ClimateNAout)
+
+      fzip
     })
-  })
+  }) |>
+    unlist()
 
   ## historic time series
 
   MSYs <- c("MSY", "M", "Y")
-  period_ann <- paste0("Year_", 1991:2022, ".ann")
 
-  future_lapply(dem_ff, function(f) {
+  zip_historic <- future_lapply(dem_ff, function(f) {
     f <- normalizePath(f)
 
     lapply(MSYs, function(msy) {
-      lapply(period_ann, function(ann) {
-        ClimateNAout <- ClimateNA_path(ClimateNAdata, tile = tileID(f), type = "historic", msy)
-        fzip <- paste0(ClimateNAout, "_", msy, ".zip")
+      ClimateNAout <- ClimateNA_path(ClimateNAdata, tile = tileID(f), type = "historic", msy)
+      fzip <- paste0(ClimateNAout, "_", msy, ".zip")
 
-        archive_write_dir(archive = fzip, dir = ClimateNAout)
-      })
+      archive_write_dir(archive = fzip, dir = ClimateNAout)
     })
-  })
+  }) |>
+    unlist()
 
   ## future time series
 
@@ -293,20 +281,21 @@ if (createZips) {
   GCMs <- c("CanESM5", "CNRM-ESM2-1")
   SSPs <- c("370", "585")
 
-  future_lapply(dem_ff, function(f) {
+  zip_future <- future_lapply(dem_ff, function(f) {
     f <- normalizePath(f)
 
     lapply(GCMs, function(gcm) {
       lapply(SSPs, function(ssp) {
         lapply(MSYs, function(msy) {
           ClimateNAout <- ClimateNA_path(ClimateNAdata, tile = tileID(f), type = "future", msy, gcm, ssp)
-          fzip <- paste0(ClimateNAout, gcm, "_", ssp, "_", tileID(f), "_", tileID(f), "_", msy, ".zip")
+          fzip <- paste0(ClimateNAout, gcm, "_", ssp, "_", tileID(f), "_", msy, ".zip")
 
           archive_write_dir(archive = fzip, dir = ClimateNAout)
         })
       })
     })
-  })
+  }) |>
+    unlist()
 }
 
 # upload tilesets -----------------------------------------------------------------------------
