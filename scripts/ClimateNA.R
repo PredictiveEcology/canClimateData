@@ -271,6 +271,8 @@ if (createZips) {
       fzip <- paste0(ClimateNAout, "_", msy, ".zip")
 
       archive_write_dir(archive = fzip, dir = ClimateNAout)
+
+      fzip
     })
   }) |>
     unlist()
@@ -291,6 +293,8 @@ if (createZips) {
           fzip <- paste0(ClimateNAout, gcm, "_", ssp, "_", tileID(f), "_", msy, ".zip")
 
           archive_write_dir(archive = fzip, dir = ClimateNAout)
+
+          fzip
         })
       })
     })
