@@ -181,15 +181,23 @@ future_lapply(dem_ff, function(f) {
     lapply(period_ann, function(ann) {
       ClimateNAout <- ClimateNA_path(ClimateNAdata, tile = tileID(f), type = "historic", msy)
 
-      withr::local_dir(ClimateNAdir)
-      system2(ClimateNAexe,
-              args = c(
-                paste0("/", msy),
-                paste0("/", ann),
-                paste0("/", f),
-                paste0("/", ClimateNAout)
-              ))
-      withr::deferred_run()
+      donefile <- file.path(ClimateNAout, paste0("00-DONE_", ann)) |>
+        normalizePath(mustWork = FALSE)
+
+      if (!file.exists(donefile)) {
+        lockfile <- file.path(ClimateNAout, paste0("00-LOCK_", ann)) |>
+          normalizePath(mustWork = FALSE)
+
+        withr::local_dir(ClimateNAdir)
+        system2(ClimateNAexe,
+                args = c(
+                  paste0("/", msy),
+                  paste0("/", ann),
+                  paste0("/", f),
+                  paste0("/", ClimateNAout)
+                ))
+        withr::deferred_run()
+      }
     })
   })
 })
@@ -217,15 +225,26 @@ future_lapply(dem_ff, function(f) {
         ClimateNAout <- ClimateNA_path(ClimateNAdata, tile = tileID(f), type = "future", msy, gcm, ssp)
 
         lapply(years, function(yr) {
-          withr::local_dir(ClimateNAdir)
-          system2(ClimateNAexe,
-                  args = c(
-                    paste0("/", msy),
-                    paste0("/", gcm, "_ssp", ssp, "@", yr, ".gcm"),
-                    paste0("/", f),
-                    paste0("/", ClimateNAout)
-                  ))
-          withr::deferred_run()
+          donefile <- file.path(ClimateNAout, paste0("00-DONE_", gcm, "_ssp", ssp, "@", yr)) |>
+            normalizePath(mustWork = FALSE)
+
+          if (!file.exists(donefile)) {
+            lockfile <- file.path(ClimateNAout, paste0("00-LOCK_", gcm, "_ssp", ssp, "@", yr)) |>
+              normalizePath(mustWork = FALSE)
+
+            withr::local_file(lockfile)
+            withr::local_dir(ClimateNAdir)
+            system2(ClimateNAexe,
+                    args = c(
+                      paste0("/", msy),
+                      paste0("/", gcm, "_ssp", ssp, "@", yr, ".gcm"),
+                      paste0("/", f),
+                      paste0("/", ClimateNAout)
+                    ))
+            withr::deferred_run()
+
+            file.create(donefile)
+          }
         })
       })
     })
