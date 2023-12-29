@@ -232,7 +232,7 @@ future_lapply(dem_ff, function(f) {
             lockfile <- file.path(ClimateNAout, paste0("00-LOCK_", gcm, "_ssp", ssp, "@", yr)) |>
               normalizePath(mustWork = FALSE)
 
-            withr::local_file(lockfile)
+            file.create(lockfile)
             withr::local_dir(ClimateNAdir)
             system2(ClimateNAexe,
                     args = c(
@@ -243,6 +243,7 @@ future_lapply(dem_ff, function(f) {
                     ))
             withr::deferred_run()
 
+            unlink(lockfile)
             file.create(donefile)
           }
         })
