@@ -906,16 +906,16 @@ transposeMergeWrite <- function(climDatAll, climateType, climateYears, leadingAr
 
   fns <- Filenames(climDatAll)
   if (length(fns) > 1){
-      for (i in 1:length(climDatAll)){
-    if (all(inMemory(climDatAll[[i]]),
-            fns[i]=="")){
-      fns[i] <- file.path(climatePath,
-                          paste0(climateVar, "_", climateType[1], "_",
-                                 paste(names(fns[i]), collapse = "_"), ".tif"))
-      writeRaster(x = climDatAll[[i]], filename = fns[i],
-                  overwrite = TRUE)
-    }
+    for (i in 1:length(climDatAll)){
+      if (all(inMemory(climDatAll[[i]]),
+              fns[i]=="")){
+        fns[i] <- file.path(climatePath,
+                            paste0(climateVar, "_", climateType[1], "_",
+                                   paste(names(fns[i]), collapse = "_"), ".tif"))
+        writeRaster(x = climDatAll[[i]], filename = fns[i],
+                    overwrite = TRUE)
       }
+    }
   } else { # If we only have one raster/study area, being it in a list or a raster
     if (all(inMemory(climDatAll),
             fns=="")){
@@ -923,16 +923,17 @@ transposeMergeWrite <- function(climDatAll, climateType, climateYears, leadingAr
     }
   }
   message("Merging spatial layers using sf::gdal_utils('warp'...)")
-    if (all(names(fns) %in% leadingArea)){
-      fns <- rev(fns[leadingArea]) # Here we need to reverse, as the main area is the last one
-    } else {
-      fns <- c(fns[!names(fns) %in% leadingArea],
-               rev(fns[leadingArea]))
-    }
-    system.time(sf::gdal_utils(util = "warp", source = fns,
-                               destination = filenameForSaving,
-                               options = "-overwrite"))
+  if (all(names(fns) %in% leadingArea)){
+    fns <- rev(fns[leadingArea]) # Here we need to reverse, as the main area is the last one
+  } else {
+    fns <- c(fns[!names(fns) %in% leadingArea],
+             rev(fns[leadingArea]))
+  }
+  system.time(sf::gdal_utils(util = "warp", source = fns,
+                             destination = filenameForSaving,
+                             options = "-overwrite"))
   climDatAllMerged <- terra::rast(filenameForSaving)
+  names(climDatAllMerged) <- names(climDatAll[[1]])
 
   climDatAllMerged
 }
