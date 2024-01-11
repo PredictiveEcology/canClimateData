@@ -155,15 +155,27 @@ future_lapply(dem_ff, function(f) {
     lapply(period_nrm, function(nrm) {
       ClimateNAout <- ClimateNA_path(ClimateNAdata, tile = tileID(f), type = "normals")
 
-      withr::local_dir(ClimateNAdir)
-      system2(ClimateNAexe,
-              args = c(
-                paste0("/", msy),
-                paste0("/", nrm),
-                paste0("/", f),
-                paste0("/", ClimateNAout)
-              ))
-      withr::deferred_run()
+      donefile <- file.path(ClimateNAout, paste0("00-DONE_", nrm)) |>
+        normalizePath(mustWork = FALSE)
+
+      if (!file.exists(donefile)) {
+        lockfile <- file.path(ClimateNAout, paste0("00-LOCK_", nrm)) |>
+          normalizePath(mustWork = FALSE)
+
+        file.create(lockfile)
+        withr::local_dir(ClimateNAdir)
+        system2(ClimateNAexe,
+                args = c(
+                  paste0("/", msy),
+                  paste0("/", nrm),
+                  paste0("/", f),
+                  paste0("/", ClimateNAout)
+                ))
+        withr::deferred_run()
+
+        unlink(lockfile)
+        file.create(donefile)
+      }
     })
   })
 })
@@ -188,6 +200,7 @@ future_lapply(dem_ff, function(f) {
         lockfile <- file.path(ClimateNAout, paste0("00-LOCK_", ann)) |>
           normalizePath(mustWork = FALSE)
 
+        file.create(lockfile)
         withr::local_dir(ClimateNAdir)
         system2(ClimateNAexe,
                 args = c(
@@ -197,6 +210,9 @@ future_lapply(dem_ff, function(f) {
                   paste0("/", ClimateNAout)
                 ))
         withr::deferred_run()
+
+        unlink(lockfile)
+        file.create(donefile)
       }
     })
   })
