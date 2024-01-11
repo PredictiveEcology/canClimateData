@@ -205,8 +205,7 @@ InitWithPrepInputs <- function(sim) {
   dt <- data.table::fread(file = file.path(dataPath(sim), "climateDataURLs.csv"))
   dt <- dt[studyArea %in% mod$studyAreaNameShort]
 
-  digestSA_RTM <- CacheDigest(list(sim$studyArea, sim$rasterToMatch))$outputHash
-
+  digestSA_RTM <- .robustDigest(list(sim.studyArea = sim$studyArea, sim.rasterToMatch = sim$rasterToMatch))
   sim$studyArea$studyAreaName <- paste0(P(sim)$studyAreaName, collapse = "_")  # makes it a data.frame
 
   stopifnot(getOption("reproducible.useNewDigestAlgorithm") == 2)
@@ -817,7 +816,7 @@ prepClimateData <- function(studyAreaNamesShort,
 
   objsForDigest1 <- c("studyAreaName", "climateYears", "fun", "climatePath", "climateType", "currentModuleName")
   objs <- mget(objsForDigest1, envir = environment())
-  dig1 <- CacheDigest(objsToDigest = objs)$outputHash
+  dig1 <- .robustDigest(object = objs)
   climDatAll <-  Map(SANshort = studyAreaNamesShort,
                      SANlong = studyAreaNamesLong,
                      climateURL = climateURLs,
@@ -858,7 +857,7 @@ prepClimateData <- function(studyAreaNamesShort,
                          ),
                          omitArgs = c("to", "maskTo", "overwrite", "fun"), # don't digest these each time
                          .functionName = paste0("prepInputs_", format(fun[[1]]), "_", climateType[1], "_", SANshort),
-                         .cacheExtra = c(digestSA_RTM, dig1),
+                         .cacheExtra = append(list(digestSA_RTM = digestSA_RTM), dig1),
                          quick = c("destinationPath", "archive", "writeTo", "climatePath"), # these are outputs; don't cache on them
                          userTags = c(paste0(climateType[1]), SANshort, cacheTags))
 
