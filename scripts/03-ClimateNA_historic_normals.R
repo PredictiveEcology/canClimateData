@@ -121,7 +121,10 @@ file.copy(tempDBfile, primaryDBfile, overwrite = TRUE)
 if (createZips) {
   ## historic normals
   new_rows_hist_normals <- future_lapply(dem_ff, function(f) {
-    climate_hist_normals_df <- ClimateNA_sql(tempDBfile, "historic_normals")
+    dbdf <- ClimateNA_sql(tempDBfile, "historic_normals")
+    climate_db <- dbdf[["db"]]
+    climate_hist_normals_df <- dbdf[["df"]]
+    rm(dbdf)
 
     f <- normalizePath(f)
 
@@ -144,7 +147,7 @@ if (createZips) {
     }) |>
       dplyr::bind_rows()
 
-    dbDisconnect(climate_hist_normals_df)
+    dbDisconnect(climate_db)
 
     return(z)
   }) |>
@@ -164,7 +167,10 @@ if (uploadArchives) {
 
   ## historic normals
   new_rows_hist_normals <- future_lapply(dem_ff, function(f) {
-    climate_hist_normals_df <- ClimateNA_sql(tempDBfile, "historic_normals")
+    dbdf <- ClimateNA_sql(tempDBfile, "historic_normals")
+    climate_db <- dbdf[["db"]]
+    climate_hist_normals_df <- dbdf[["df"]]
+    rm(dbdf)
 
     f <- normalizePath(f)
 
@@ -187,7 +193,7 @@ if (uploadArchives) {
     }) |>
       dplyr::bind_rows()
 
-    dbDisconnect(climate_hist_normals_df)
+    dbDisconnect(climate_db)
 
     return(z)
   }) |>

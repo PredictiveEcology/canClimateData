@@ -153,7 +153,7 @@ if (createZips) {
     }) |>
       dplyr::bind_rows()
 
-    dbDisconnect(climate_historic_df)
+    dbDisconnect(climate_db)
 
     return(z)
   }) |>
@@ -205,7 +205,7 @@ if (uploadArchives) {
     }) |>
       dplyr::bind_rows()
 
-    dbDisconnect(climate_historic_df)
+    dbDisconnect(climate_db)
 
     return(z)
   }) |>
