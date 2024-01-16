@@ -140,8 +140,8 @@ if (createZips) {
 
       archive_write_dir(archive = fzip, dir = ClimateNAout)
 
-      new_row <- dplyr::mutate(row, archived = file.info(fzip)$mtime, zipfile = fzip)
-      # rows_update(climate_hist_normals_df, new_row, copy = TRUE, inplace = TRUE)
+      new_row <- dplyr::mutate(row, archived = file.info(fzip)$mtime, zipfile = fs::path_rel(fzip, ClimateNAdata))
+      # rows_update(climate_hist_normals_df, new_row, copy = TRUE, in_place = TRUE)
 
       return(new_row)
     }) |>
@@ -153,7 +153,7 @@ if (createZips) {
   }) |>
     dplyr::bind_rows()
 
-  rows_update(climate_hist_normals_df, new_rows_hist_normals, copy = TRUE, inplace = TRUE)
+  rows_update(climate_hist_normals_df, new_rows_hist_normals, copy = TRUE, in_place = TRUE)
 
   file.copy(tempDBfile, primaryDBfile, overwrite = TRUE)
 }
@@ -187,7 +187,7 @@ if (uploadArchives) {
       gt <- googledrive::drive_put(media = fzip, path = googledrive::as_id(gids_hist_normals[[msy]]))
 
       new_row <- dplyr::mutate(row, uploaded = Sys.time(), gid = gt$id)
-      # rows_update(climate_hist_normals_df, new_row, copy = TRUE, inplace = TRUE)
+      # rows_update(climate_hist_normals_df, new_row, copy = TRUE, in_place = TRUE)
 
       return(new_row)
     }) |>
@@ -199,7 +199,7 @@ if (uploadArchives) {
   }) |>
     dplyr::bind_rows()
 
-  rows_update(climate_hist_normals_df, new_rows_hist_normals, copy = TRUE, inplace = TRUE)
+  rows_update(climate_hist_normals_df, new_rows_hist_normals, copy = TRUE, in_place = TRUE)
 
   file.copy(tempDBfile, primaryDBfile, overwrite = TRUE)
 }
