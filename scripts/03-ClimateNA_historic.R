@@ -59,7 +59,6 @@ new_rows_historic <- future_lapply(dem_ff, function(f) {
     lapply(period_ann, function(ann) {
       ClimateNAout <- ClimateNA_path(ClimateNAdata, tile = tileID(f), type = "historic", msy)
 
-      type <- paste0("historic", "_", msy)
       yr <- substr(ann, 6, 9)
 
       row <- dplyr::filter(
@@ -83,6 +82,7 @@ new_rows_historic <- future_lapply(dem_ff, function(f) {
 
         new_row <- data.frame(
           ## rowid will be filled automatically
+          msy = msy,
           year = yr,
           tileid = tileID(f),
           created = file.info(ClimateNAout)$mtime,
