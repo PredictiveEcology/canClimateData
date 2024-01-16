@@ -127,12 +127,12 @@ if (createZips) {
     z <- lapply(MSYs, function(msy) {
       ClimateNAout <- ClimateNA_path(ClimateNAdata, tile = tileID(f), type = "historic", msy)
 
-      lapply(decades, function(dcd) {
+      lapply(historic_decades, function(dcd) {
         fzip <- paste0(ClimateNAout, "_", msy, "_", dcd, ".zip")
 
         row <- dplyr::filter(
           climate_historic_df,
-          msy = !!msy & year %in% !!(dcd + 0:9) & tileid == !!tileID(f) ## zip each decade
+          msy == !!msy & year %in% !!(dcd + 0:9) & tileid == !!tileID(f) ## zip each decade
         ) |>
           collect()
 
@@ -145,7 +145,7 @@ if (createZips) {
         withr::deferred_run()
 
         new_row <- dplyr::mutate(row, created = file.info(fzip)$mtime, zipfile = fs::path_rel(fzip, ClimateNAdata))
-        # rows_update(climate_historic_df, new_row, copy = TRUE, in_place = TRUE)
+        # rows_update(climate_historic_df, new_row, copy = TRUE, in_place = TRUE, unmatched = "ignore")
 
         return(new_row)
       }) |>
@@ -158,6 +158,8 @@ if (createZips) {
     return(z)
   }) |>
     dplyr::bind_rows()
+
+  rows_update(climate_historic_df, new_rows_historic, copy = TRUE, in_place = TRUE, unmatched = "ignore")
 
   dbDisconnect(climate_db)
 
@@ -190,14 +192,14 @@ if (uploadArchives) {
 
         row <- dplyr::filter(
           climate_historic_df,
-          msy = !!msy & year %in% !!(dcd + 0:9) & tileid == !!tileID(f) ## zip each decade
+          msy == !!msy & year %in% !!(dcd + 0:9) & tileid == !!tileID(f) ## zip each decade
         ) |>
           collect()
 
         gt <- googledrive::drive_put(media = fzip, path = googledrive::as_id(gids_historic[[msy]]))
 
         new_row <- dplyr::mutate(row, uploaded = Sys.time(), gid = gt$id)
-        # rows_update(climate_hist_normals_df, new_row, copy = TRUE, in_place = TRUE)
+        # rows_update(climate_hist_normals_df, new_row, copy = TRUE, in_place = TRUE, unmatched = "ignore")
 
         return(new_row)
       }) |>
@@ -211,7 +213,7 @@ if (uploadArchives) {
   }) |>
     dplyr::bind_rows()
 
-  rows_update(climate_hist_normals_df, new_rows_historic, copy = TRUE, in_place = TRUE)
+  rows_update(climate_historic_df, new_rows_historic, copy = TRUE, in_place = TRUE, unmatched = "ignore")
 
   dbDisconnect(climate_db)
 
