@@ -144,7 +144,7 @@ if (createZips) {
         archive_write_files(archive = fzip, files = files2add)
         withr::deferred_run()
 
-        new_row <- dplyr::mutate(row, created = file.info(fzip)$mtime, zipfile = fs::path_rel(fzip, ClimateNAdata))
+        new_row <- dplyr::mutate(row, archived = file.info(fzip)$mtime, zipfile = fs::path_rel(fzip, ClimateNAdata))
         # rows_update(climate_historic_df, new_row, copy = TRUE, in_place = TRUE, unmatched = "ignore")
 
         return(new_row)
