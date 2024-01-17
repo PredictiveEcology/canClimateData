@@ -44,7 +44,7 @@ googledrive::drive_auth(email = userEmail, cache = oauthCachePath)
 ## database tracks which data already processed / uploaded
 
 primaryDBfile <- file.path(ClimateNAdata, "ClimateNA_tiles.sqlite")
-moduleDBfile <- dPath
+moduleDBfile <- file.path(dPath, basename(primaryDBfile))
 tempDBfile <- tempfile(fileext = ".sqlite")
 
 if (file.exists(primaryDBfile)) {

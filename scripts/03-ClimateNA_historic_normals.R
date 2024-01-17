@@ -211,4 +211,4 @@ if (uploadArchives) {
 }
 
 ## copy updated db to module data folder
-file.copy(primaryDBfile, moduleDBfile)
+file.copy(primaryDBfile, moduleDBfile, overwrite = TRUE)
