@@ -35,13 +35,16 @@ ClimateNAdata <- switch(Sys.info()[["sysname"]],
                         Windows = "C:/ClimateNA_data")
 stopifnot(dir.exists(ClimateNAdata))
 
-dPath <- "data"
+dPath <- file.path("data")
 
-googledrive::drive_auth(email = "achubaty@for-cast.ca")
+userEmail <- "achubaty@for-cast.ca"
+oauthCachePath <- file.path(".secrets")
+googledrive::drive_auth(email = userEmail, cache = oauthCachePath)
 
 ## database tracks which data already processed / uploaded
 
 primaryDBfile <- file.path(ClimateNAdata, "ClimateNA_tiles.sqlite")
+moduleDBfile <- dPath
 tempDBfile <- tempfile(fileext = ".sqlite")
 
 if (file.exists(primaryDBfile)) {

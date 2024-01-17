@@ -186,6 +186,10 @@ if (createZips) {
 # upload tilesets -----------------------------------------------------------------------------
 
 if (uploadArchives) {
+  googledrive::drive_auth(email = userEmail, cache = oauthCachePath)
+
+  plan("callr", workers = 8L) ## don't want too many parallel uploads
+
   gids_future <- googledrive::drive_ls(googledrive::as_id("1DH_JF6ZluYsZUpHGRXpXI8Q-DOUOE9AY")) |>
     dplyr::select(name, id) |>
     dplyr::mutate(gcm = sapply(name, function(x) strsplit(x, "_")[[1]][1]),
@@ -245,3 +249,6 @@ if (uploadArchives) {
 
   file.copy(tempDBfile, primaryDBfile, overwrite = TRUE)
 }
+
+## copy updated db to module data folder
+file.copy(primaryDBfile, moduleDBfile)

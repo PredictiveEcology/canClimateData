@@ -169,6 +169,8 @@ if (createZips) {
 # upload tilesets -----------------------------------------------------------------------------
 
 if (uploadArchives) {
+  plan("callr", workers = 8L) ## don't want too many parallel uploads
+
   gids_historic <- list(
     MSY = "1r9yZMlXDqEQxBX2aQeDBAkHlzegqZRLL",
     M = "1E3PNXb_ti5a6JSzmBkrRP5UQ-y6Bco7A",
@@ -177,6 +179,8 @@ if (uploadArchives) {
 
   ## historic time series
   new_rows_historic <- future_lapply(dem_ff, function(f) {
+    googledrive::drive_auth(email = userEmail, cache = oauthCachePath)
+
     dbdf <- ClimateNA_sql(tempDBfile, "historic")
     climate_db <- dbdf[["db"]]
     climate_historic_df <- dbdf[["df"]]
@@ -219,3 +223,6 @@ if (uploadArchives) {
 
   file.copy(tempDBfile, primaryDBfile, overwrite = TRUE)
 }
+
+## copy updated db to module data folder
+file.copy(primaryDBfile, moduleDBfile)
