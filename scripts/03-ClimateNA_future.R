@@ -96,7 +96,7 @@ new_rows_future <- future_lapply(dem_ff, function(f) {
             )
             # rows_append(future_climate_df, new_row, copy = TRUE, in_place = TRUE)
           } else {
-            new_row <- row
+            new_row <- dplyr::mutate(row, created = file.info(ClimateNAout)$mtime)
           }
 
           return(new_row)
