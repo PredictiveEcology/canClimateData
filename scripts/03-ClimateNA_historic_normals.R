@@ -207,6 +207,8 @@ if (uploadArchives) {
 
   rows_update(climate_hist_normals_df, new_rows_hist_normals, copy = TRUE, in_place = TRUE, unmatched = "ignore")
 
+  dbDisconnect(climate_db)
+
   file.copy(tempDBfile, primaryDBfile, overwrite = TRUE)
 }
 
