@@ -139,7 +139,7 @@ if (createZips) {
         lapply(MSYs, function(msy) {
           lapply(future_decades, function(dcd) {
             ClimateNAout <- ClimateNA_path(ClimateNAdata, tile = tileID(f), type = "future", msy, gcm, ssp)
-            fzip <- paste0(ClimateNAout, gcm, "_", ssp, "_", tileID(f), "_", msy, "_", dcd, ".zip")
+            fzip <- paste0(ClimateNAout, "_", gcm, "_", ssp, "_", msy, "_", dcd, ".zip")
 
             type <- paste0("future", "_", msy)
 
@@ -214,7 +214,7 @@ if (uploadArchives) {
 
           lapply(future_decades, function(dcd) {
             ClimateNAout <- ClimateNA_path(ClimateNAdata, tile = tileID(f), type = "future", msy, gcm, ssp)
-            fzip <- paste0(ClimateNAout, gcm, "_", ssp, "_", tileID(f), "_", msy, "_", dcd, ".zip")
+            fzip <- paste0(ClimateNAout, "_", gcm, "_", ssp, "_", msy, "_", dcd, ".zip")
 
             type <- paste0("future", "_", msy)
 
