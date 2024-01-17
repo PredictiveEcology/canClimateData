@@ -188,12 +188,12 @@ if (createZips) {
 if (uploadArchives) {
   googledrive::drive_auth(email = userEmail, cache = oauthCachePath)
 
-  plan("callr", workers = 8L) ## don't want too many parallel uploads
+  plan("callr", workers = 16L) ## don't want too many parallel uploads
 
   gids_future <- googledrive::drive_ls(googledrive::as_id("1DH_JF6ZluYsZUpHGRXpXI8Q-DOUOE9AY")) |>
     dplyr::select(name, id) |>
     dplyr::mutate(gcm = sapply(name, function(x) strsplit(x, "_")[[1]][1]),
-                  ssp = sapply(name, function(x) strsplit(x, "_ssp")[[1]][2]),
+                  ssp = sapply(name, function(x) strsplit(x, "(_ssp|_RCP)")[[1]][2]),
                   name = NULL,
                   .before = id)
 
@@ -209,6 +209,9 @@ if (uploadArchives) {
     z <- lapply(GCMs, function(gcm) {
       lapply(SSPs, function(ssp) {
         lapply(MSYs, function(msy) {
+          ## re-auth to avoid curl::curl_fetch_memory() "Error in the HTTP2 framing layer"
+          googledrive::drive_auth(email = userEmail, cache = oauthCachePath)
+
           lapply(future_decades, function(dcd) {
             ClimateNAout <- ClimateNA_path(ClimateNAdata, tile = tileID(f), type = "future", msy, gcm, ssp)
             fzip <- paste0(ClimateNAout, gcm, "_", ssp, "_", tileID(f), "_", msy, "_", dcd, ".zip")
