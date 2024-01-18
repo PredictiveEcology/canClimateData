@@ -232,6 +232,10 @@ if (uploadArchives) {
               gt <- googledrive::drive_put(media = fzip, path = googledrive::as_id(gid))
             } else {
               gt <- dplyr::filter(drivefiles, name == basename(fzip))
+
+              if (nrow(gt) == 0) {
+                gt <- googledrive::drive_put(media = fzip, path = googledrive::as_id(gid))
+              }
             }
 
             new_row <- dplyr::mutate(row, uploaded = Sys.time(), gid = gt$id)
