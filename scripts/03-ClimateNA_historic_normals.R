@@ -33,7 +33,7 @@ if (!exists("dem_ff")) {
   stopifnot(length(dem_ff) > 0)
 }
 
-plan("callr", workers = parallelly::availableCores())
+plan("callr", workers = min(length(dem_ff), parallelly::availableCores()))
 
 # use ClimateNA to fetch and process climate data ---------------------------------------------
 
