@@ -103,10 +103,14 @@ new_rows_historic <- future_lapply(dem_ff, function(f) {
 
   return(z)
 }, future.seed = NULL) |>
-  dplyr::bind_rows() |>
-  tibble::rowid_to_column()
+  dplyr::bind_rows()
 
-rows_append(climate_historic_df, new_rows_historic, copy = TRUE, in_place = TRUE)
+if (!"rowid" %in% colnames(new_rows_historic)) {
+  new_rows_historic <- tibble::rowid_to_column(new_rows_historic)
+  rows_append(climate_historic_df, new_rows_historic, copy = TRUE, in_place = TRUE)
+} else {
+  rows_update(climate_historic_df, new_rows_historic, copy = TRUE, in_place = TRUE, unmatched = "ignore")
+}
 
 dbDisconnect(climate_db)
 
@@ -191,6 +195,9 @@ if (uploadArchives) {
     z <- lapply(MSYs, function(msy) {
       ClimateNAout <- ClimateNA_path(ClimateNAdata, tile = tileID(f), type = "historic", msy)
 
+      gid <- googledrive::as_id(gids_historic[[msy]])
+      drivefiles <- googledrive::drive_ls(gid)
+
       lapply(historic_decades, function(dcd) {
         fzip <- paste0(ClimateNAout, "_", msy, "_", dcd, ".zip")
 
@@ -200,7 +207,15 @@ if (uploadArchives) {
         ) |>
           collect()
 
-        gt <- googledrive::drive_put(media = fzip, path = googledrive::as_id(gids_historic[[msy]]))
+        if (reuploadArchives) {
+          gt <- googledrive::drive_put(media = fzip, path = googledrive::as_id(gid))
+        } else {
+          gt <- dplyr::filter(drivefiles, name == basename(fzip))
+
+          if (nrow(gt) == 0) {
+            gt <- googledrive::drive_put(media = fzip, path = googledrive::as_id(gid))
+          }
+        }
 
         new_row <- dplyr::mutate(row, uploaded = Sys.time(), gid = gt$id)
         # rows_update(climate_hist_normals_df, new_row, copy = TRUE, in_place = TRUE, unmatched = "ignore")
