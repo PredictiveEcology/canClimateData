@@ -27,6 +27,7 @@ future_decades <- (future_years %/% 10 * 10) |> unique() |> as.integer()
 runClimateNA <- FALSE ## TRUE
 createZips <- FALSE ## TRUE
 uploadArchives <- FALSE ## TRUE
+reuploadArchives <- FALSE ## TRUE
 
 if (!exists("dem_ff")) {
   dem_ff <- list.files(file.path(ClimateNAdata, "dem"), pattern = "[.]asc$", full.names = TRUE)
@@ -212,6 +213,9 @@ if (uploadArchives) {
           ## re-auth to avoid curl::curl_fetch_memory() "Error in the HTTP2 framing layer"
           googledrive::drive_auth(email = userEmail, cache = oauthCachePath)
 
+          gid <- dplyr::filter(gids_future, gcm == !!gcm, ssp == !!ssp)[["id"]]
+          drivefiles <- googledrive::drive_ls(gid)
+
           lapply(future_decades, function(dcd) {
             ClimateNAout <- ClimateNA_path(ClimateNAdata, tile = tileID(f), type = "future", msy, gcm, ssp)
             fzip <- paste0(ClimateNAout, "_", gcm, "_", ssp, "_", msy, "_", dcd, ".zip")
@@ -224,8 +228,11 @@ if (uploadArchives) {
             ) |>
               collect()
 
-            gid <- dplyr::filter(gids_future, gcm == !!gcm, ssp == !!ssp)[["id"]]
-            gt <- googledrive::drive_put(media = fzip, path = googledrive::as_id(gid))
+            if (reuploadArchives) {
+              gt <- googledrive::drive_put(media = fzip, path = googledrive::as_id(gid))
+            } else {
+              gt <- dplyr::filter(drivefiles, name == basename(fzip))
+            }
 
             new_row <- dplyr::mutate(row, uploaded = Sys.time(), gid = gt$id)
             # rows_update(climate_hist_normals_df, new_row, copy = TRUE, in_place = TRUE, unmatched = "ignore")
