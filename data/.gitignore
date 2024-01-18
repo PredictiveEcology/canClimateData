@@ -4,5 +4,5 @@
 ## don't ignore
 !.gitignore
 !CHECKSUMS.txt
-!climateDataURLs.csv
+!ClimateNA_tiles.sqlite
 !tiles.gpkg
