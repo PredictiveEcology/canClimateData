@@ -9,10 +9,9 @@ canada <- geodata::gadm(country = "CAN", level = 0, path = dPath, version = "4.1
   st_transform(targetCRS) |>
   nngeo::st_remove_holes()
 
-tiles <- st_make_grid(canada, n = c(10, 10))
-gpkg <- file.path(dPath, "tiles.gpkg")
-unlink(gpkg)
-st_write(tiles, gpkg)
+tiles <- st_make_grid(canada, n = c(10, 10)) |>
+  dplyr::mutate(id = dplyr::row_number(), .before = geom)
+st_write(tiles, file.path(dPath, "tiles.gpkg"))
 
 idx <- st_intersects(tiles, canada) |>
   lapply(any) |>
