@@ -9,18 +9,24 @@ canada <- geodata::gadm(country = "CAN", level = 0, path = dPath, version = "4.1
   st_transform(targetCRS) |>
   nngeo::st_remove_holes()
 
-tiles <- st_make_grid(canada, n = c(10, 10)) |>
-  dplyr::mutate(id = dplyr::row_number(), .before = geom)
-st_write(tiles, file.path(dPath, "tiles.gpkg"))
+tiles0 <- st_make_grid(canada, n = c(10, 10))
 
-idx <- st_intersects(tiles, canada) |>
+idx <- st_intersects(tiles0, canada) |>
   lapply(any) |>
   unlist() |>
   which()
 
+tiles <- tiles0[idx] |>
+  st_as_sf() |>
+  dplyr::mutate(id = dplyr::row_number(), .before = x) |>
+  dplyr::rename(geom = x)
+st_write(tiles, file.path(dPath, "tiles.gpkg"), append = FALSE) ## can't write sqlite file to network drive
+file.copy(from = file.path(dPath, "tiles.gpkg"),
+          to = file.path(ClimateNAdata, "tiles.gpkg"),
+          overwrite = TRUE) ## write locally; copy to share.
+
 if (interactive()) {
-  plot(tiles)
-  plot(tiles[idx], col = "lightgrey", add = TRUE)
+  plot(st_geometry(tiles), col = "lightgrey")
   plot(st_geometry(canada), add = TRUE)
 }
 
@@ -38,16 +44,20 @@ gtopo30N <- prepInputs(
 
 if (interactive()) {
   plot(gtopo30N, legend = FALSE)
-  plot(tiles[idx], add = TRUE, border = "blue", lwd = 2)
-  st_centroid(tiles[idx]) |>
+  plot(st_geometry(tiles), add = TRUE, border = "blue", lwd = 2)
+  st_centroid(tiles) |>
     st_coordinates() |>
     text(col = "blue")
 }
 
+dem_dir <- file.path(ClimateNAdata, "dem")
+if (!dir.exists(dem_dir)) {
+  dir.create(dem_dir, recursive = TRUE)
+}
 dem_ff <- makeTiles(
   x = gtopo30N,
-  y = vect(tiles[idx]),
-  filename = file.path(file.path(ClimateNAdata, "dem"), "can_dem_.asc"),
+  y = vect(tiles),
+  filename = file.path(dem_dir, "can_dem_.asc"),
   na.rm = TRUE
 )
 
@@ -60,7 +70,7 @@ if (interactive()) {
   ## visually check that the raster ids match the polygon ids for the tiles
   dem <- vrt(dem_ff)
   plot(dem, legend = FALSE)
-  plot(tiles, add = TRUE)
+  plot(st_geometry(tiles), add = TRUE)
 
   lapply(dem_ff, function(f) {
     id <-  tileID(f)
