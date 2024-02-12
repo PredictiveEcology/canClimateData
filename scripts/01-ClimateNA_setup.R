@@ -45,8 +45,8 @@ googledrive::drive_auth(email = userEmail, cache = oauthCachePath)
 
 primaryDBfile <- file.path(ClimateNAdata, "ClimateNA_tiles.sqlite")
 pkgDBfile <- file.path("~/GitHub/PredictiveEcology/climateData/inst/extdata", basename(primaryDBfile))
-tempDBfile <- tempfile(fileext = ".sqlite")
+tempDBfile <- file.path("ClimateNA_tiles.sqlite") ## local copy; primary on network drive 'locked'.
 
 if (file.exists(primaryDBfile)) {
-  file.copy(primaryDBfile, tempDBfile) ## always work on a copy; primary on network drive 'locked'.
+  file.copy(primaryDBfile, tempDBfile) ## always work on a copy
 }

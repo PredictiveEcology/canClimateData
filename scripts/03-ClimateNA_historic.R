@@ -11,7 +11,7 @@ climate_db <- dbdf[["db"]]
 climate_historic_df <- dbdf[["df"]]
 rm(dbdf)
 
-MSYs <- c("MSY", "M", "Y")
+MSYs <- c("MSY", "M", "S", "Y")
 
 historic_years <- 1901L:2022L
 # historic_years <- 1901L:1990L

@@ -68,7 +68,7 @@ new_rows_hist_normals <- future_lapply(dem_ff, function(f) {
 
       row <- dplyr::filter(
         climate_hist_normals_df,
-        msy = !!msy & period == !!period & tileid == !!tileID(f)
+        msy == !!msy & period == !!period & tileid == !!tileID(f)
       ) |>
         collect()
 
@@ -107,10 +107,14 @@ new_rows_hist_normals <- future_lapply(dem_ff, function(f) {
 
   return(z)
 }, future.seed = NULL) |>
-  dplyr::bind_rows() |>
-  tibble::rowid_to_column()
+  dplyr::bind_rows()
 
-rows_append(climate_hist_normals_df, new_rows_hist_normals, copy = TRUE, in_place = TRUE)
+if (!"rowid" %in% colnames(new_rows_hist_normals)) {
+  new_rows_hist_normals <- tibble::rowid_to_column(new_rows_hist_normals)
+  rows_append(climate_hist_normals_df, new_rows_hist_normals, copy = TRUE, in_place = TRUE)
+} else {
+  rows_update(climate_hist_normals_df, new_rows_hist_normals, copy = TRUE, in_place = TRUE, unmatched = "ignore")
+}
 
 dbDisconnect(climate_db)
 

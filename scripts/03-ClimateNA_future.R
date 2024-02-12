@@ -11,12 +11,14 @@ climate_db <- dbdf[["db"]]
 future_climate_df <- dbdf[["df"]]
 rm(dbdf)
 
-MSYs <- c("MSY", "M", "Y")
+MSYs <- c("MSY", "M", "S", "Y")
 GCMs <- c(
+  # "8GCMs_ensemble", ## see http://climatena.ca/downloads/ClimateNA_8ModelRationale_Mahony_07May2022.pdf
   "CanESM5",
   "CNRM-ESM2-1"
 )
 SSPs <- c(
+  # "126",
   "245",
   "370",
   "585"
@@ -114,10 +116,14 @@ new_rows_future <- future_lapply(dem_ff, function(f) {
 
   return(z)
 }, future.seed = NULL) |>
-  dplyr::bind_rows() |>
-  tibble::rowid_to_column()
+  dplyr::bind_rows()
 
-rows_append(future_climate_df, new_rows_future, copy = TRUE, in_place = TRUE)
+if (!"rowid" %in% colnames(new_rows_future)) {
+  new_rows_future <- tibble::rowid_to_column(new_rows_future)
+  rows_append(future_climate_df, new_rows_future, copy = TRUE, in_place = TRUE)
+} else {
+  rows_update(future_climate_df, new_rows_future, copy = TRUE, in_place = TRUE, unmatched = "ignore")
+}
 
 dbDisconnect(climate_db)
 
