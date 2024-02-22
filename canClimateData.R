@@ -8,7 +8,8 @@ defineModule(sim, list(
   authors = c(
     person("Ian", "Eddy", email = "ian.eddy@nrcan-rncan.gc.ca", role = "aut"),
     person("Alex M", "Chubaty", email = "achubaty@for-cast.ca", role = c("aut", "cre")),
-    person("Eliot", "McIntire", email = "eliot.mcintire@nrcan-rncan.gc.ca", role = "ctb")
+    person("Eliot", "McIntire", email = "eliot.mcintire@nrcan-rncan.gc.ca", role = "aut"),
+    person("Tati", "Micheletti", email = "tati.micheletti@gmail.com", role = "ctb")
   ),
   childModules = character(0),
   version = list(canClimateData = "1.0.0"),
@@ -43,6 +44,11 @@ defineModule(sim, list(
     defineParameter("studyAreaName", "character", NA_character_, NA, NA,
                     paste("User-defined label for the current stuyd area.",
                           "If `NA`, a hash of `studyArea` will be used.")),
+    defineParameter("usePrepInputs", "logical", TRUE, NA, NA,
+                    "There are currently two ways to run this module: using `reproducible::prepInputs` and ",
+                    "a custom approach using googledrive directly. The direct googledrive approach was the ",
+                    "original approach; `usePrepInputs = TRUE` is a rewrite from that original code. On Dec 11, 2023, ",
+                    "the two ways would be similar, but they may diverge over time."),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA,
                     "Describes the simulation time at which the first plot event should occur."),
     defineParameter(".plotInterval", "numeric", NA, NA, NA,
@@ -223,18 +229,78 @@ Init <- function(sim) {
   sim$projectedClimateRasters <- climateRasters$future_MDC
 
   return(invisible(sim))
+
 }
+#' prepInputs for climate data
+#'
+#' @param studyAreaNamesShort A character vector of short names for the "regions", e.g., c("AB", "BC")
+#' @param studyAreaNamesLong A character vector of long names for the "regions" e.g., c("Alberta", "British Columbia")
+#' @param climateURLs A character vector of urls to pass -- one at a time -- to `prepInputs(url = ...)`
+#' @param studyAreaName A character string that represents the studyArea for the project e.g., "Edehzhie"
+#' @param climateYears A numeric vector of years to extract climate data for e.g., 1991:2020 or 2025:2100
+#' @param rasterToMatch A `SpatRaster` to pass to `prepInputs` --> which will pass to `postProcessTo`.
+#'   To skip `postProcessTo`, user must set this to `NULL` and `studyArea = NULL, saveInner = FALSE`.
+#' @param studyArea A `SpatVector` to pass to `prepInputs` --> which will pass to `postProcessTo`.
+#'   To skip `postProcessTo`, user must set this to `NULL` and `studyArea = NULL, saveInner = FALSE`.
+#' @param currentModuleName A character string e.g., extracted from `currentModule(sim)`, defaults to `"NoModule"`
+#' @param climatePath A character string that is passed to `prepInputs(..., destinationPath = climatePath)`.
+#'   If `saveInner = TRUE` (the default), this will also be used to build the filename passed to
+#'   `postProcessTo(..., writeTo = XXX)`.
+#' @param digestSA_RTM A charater string that represents the a unique identifier of the `studyArea` and
+#'   `rasterToMatch` objects, e.g., from `CacheDigest(list(studyArea, rasterToMatch))$outputHash`. This is
+#'   used to save time internally so the many `prepInputs` calls don't have to keep digesting these two
+#'   spatial objects.
+#' @param climateType A character string that is used as a label for this call. Intended to be used
+#'   to indicate e.g., "historical" or "projected" or more nuance, like "projected_annual_ATA".
+#'
+#' @param fun A quoted function call that is passed to `fun` argument in `prepInputs`.
+#'   This can use `SANshort` (each of `studyAreaNamesShort`),
+#'   `SANlong` (each of `studyAreaNamesLong`), `climatePath`, `climateURL` (each of `climateURL`),
+#'   `climateYears`, or anything passed to `...`
+#' @param climateVar A character string used as a label (for filenames and other labels for messaging)
+#'   that indicates the type of climate variable
+#'   being calculated/downloaded/derived e.g., `"MDC"` (which is the default).
+#' @param saveInner Length 1 logical. Should `postProcessTo(...)` be passed a `writeTo` for each
+#'   individual `studyAreaShort`
+#' @param saveOuter Length 1 logical. After `mergeRaster` of all the `studyAreaShort`, should
+#'   the final `SpatRaster` be saved to disk.
+#' @param ... Any optional named argument needed for `fun`
+#' @export
+#'
+prepClimateData <- function(studyAreaNamesShort,
+                            studyAreaNamesLong, climateURLs, # these are vectorized on studyAreaNamesShort
+                            studyAreaName, climateYears,
+                            rasterToMatch = NULL, studyArea = NULL, currentModuleName = "NoModule",
+                            climatePath, digestSA_RTM, climateType = c("historical", "projected"),
+                            fun, climateVar = "MDC", saveInner = TRUE, saveOuter = TRUE, leadingArea, ...) {
 
 .inputObjects <- function(sim) {
   cacheTags <- c(currentModule(sim), "function:.inputObjects")
   dPath <- inputPath(sim) |> asPath(1)
   message(currentModule(sim), ": using dataPath '", dPath, "'.")
 
-  # ! ----- EDIT BELOW ----- ! #
+  objsForDigest1 <- c("studyAreaName", "climateYears", "fun", "climatePath", "climateType", "currentModuleName")
+  objs <- mget(objsForDigest1, envir = environment())
+  dig1 <- .robustDigest(object = objs)
+  climDatAll <-  Map(SANshort = studyAreaNamesShort,
+                     SANlong = studyAreaNamesLong,
+                     climateURL = climateURLs,
+                     function(SANshort, SANlong, climateURL) {
 
-  ## TODO: ensure defaults work using terra/sf
-  mod$targetCRS <- paste("+proj=lcc +lat_1=49 +lat_2=77 +lat_0=0 +lon_0=-95",
-                         "+x_0=0 +y_0=0 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0")
+                       cacheTags <- c(studyAreaName, currentModuleName)
+                       # climateArchive <- file.path(climatePath, paste0(studyAreaNameDir[[SANshort]], ".zip"))
+                       filenameForSaving <- NULL
+                       if (isTRUE(saveInner))
+                         filenameForSaving <- file.path(climatePath,
+                                                        paste0(climateVar, "_", climateType[1], "_", SANshort, "_",
+                                                               paste(studyAreaName, collapse = "_"), ".tif"))
+                       climData <- Cache(
+                         prepInputs(
+                           # for preProcess
+                           targetFile = NA_character_,
+                           url = as_id(climateURL),
+                           destinationPath = climatePath,
+                           # archive = climateArchive,
 
   if (!suppliedElsewhere("studyArea", sim)) {
     ## random study area spanning portions of NE AB and NW SK
@@ -245,24 +311,21 @@ Init <- function(sim) {
       sf::st_buffer(P(sim)$bufferDist)
   }
 
-  if (!suppliedElsewhere("studyAreaReporting", sim)) {
-    sim$studyAreaReporting <- sim$studyArea
-  }
+                           # for postProcessTo
+                           to = rasterToMatch,
+                           maskTo = studyArea,
+                           writeTo = filenameForSaving,
+                           datatype = "INT2U",
+                           useCache = FALSE, # This is the internal cache for postProcessTo
 
   if (is.na(P(sim)$studyAreaName)) {
     ## use unique hash as study area name
     P(sim, "studyAreaName") <- studyAreaName(sim$studyArea)
   }
 
-  if (!suppliedElsewhere("rasterToMatch", sim)) {
-    sim$rasterToMatch <- Cache(LandR::prepInputsLCC,
-                               year = 2005,
-                               studyArea = sim$studyArea,
-                               destinationPath = dPath,
-                               useCache = P(sim)$.useCache,
-                               filename2 = NULL)
-    writeRaster(sim$rasterToMatch, file.path(dPath, paste0(P(sim)$studyAreaName, "_rtm.tif")),
-                datatype = "INT1U", overwrite = TRUE)
+  #temporary workaround (06/12/2023) to terra bug with NAflag when INT1U/INT2U passed
+  if (climateVar == "MDC") {
+    climDatAll <- lapply(climDatAll, `NAflag<-`, value = 0)
   }
 
   if (!suppliedElsewhere("rasterToMatchReporting", sim)) {
@@ -270,6 +333,18 @@ Init <- function(sim) {
     writeRaster(sim$rasterToMatchReporting,  file.path(dPath, paste0(P(sim)$studyAreaName, "_rtmr.tif")),
                 datatype = "INT1U", overwrite = TRUE)
   }
+  message("Merging spatial layers using sf::gdal_utils('warp'...)")
+  if (all(names(fns) %in% leadingArea)){
+    fns <- rev(fns[leadingArea]) # Here we need to reverse, as the main area is the last one
+  } else {
+    fns <- c(fns[!names(fns) %in% leadingArea],
+             rev(fns[leadingArea]))
+  }
+  system.time(sf::gdal_utils(util = "warp", source = fns,
+                             destination = filenameForSaving,
+                             options = "-overwrite"))
+  climDatAllMerged <- terra::rast(filenameForSaving)
+  names(climDatAllMerged) <- names(climDatAll[[1]])
 
   return(invisible(sim))
 }
