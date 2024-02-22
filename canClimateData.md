@@ -1,7 +1,7 @@
 ---
 title: "canClimateData"
 author: "Alex Chubaty"
-date: "17 February 2022"
+date: "22 February 2024"
 output:
   html_document:
     df_print: paged
@@ -34,6 +34,70 @@ Provide a summary of user-visible parameters.
   </tr>
  </thead>
 <tbody>
+  <tr>
+   <td style="text-align:left;"> bufferDist </td>
+   <td style="text-align:left;"> numeric </td>
+   <td style="text-align:left;"> 20000 </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Distance (m) to buffer `studyArea` and `rasterToMatch`. </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> climateGCM </td>
+   <td style="text-align:left;"> character </td>
+   <td style="text-align:left;"> CNRM-ESM2-1 </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Global Circulation Model to use for climate projections: currently 'CanESM5' or 'CNRM-ESM2-1'. </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> climateSSP </td>
+   <td style="text-align:left;"> numeric </td>
+   <td style="text-align:left;"> 370 </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> SSP emissions scenario for `climateGCM`: one of 245, 370, or 585. </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> historicalFireYears </td>
+   <td style="text-align:left;"> numeric </td>
+   <td style="text-align:left;"> 1991, 19.... </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> range of years captured by the historical climate data </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> projectedFireYears </td>
+   <td style="text-align:left;"> numeric </td>
+   <td style="text-align:left;"> 2011, 20.... </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> range of years captured by the projected climate data </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> quickCheck </td>
+   <td style="text-align:left;"> logical </td>
+   <td style="text-align:left;"> TRUE </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> `prepClimateData` uses `prepInputs` internally; set this to `TRUE` to avoid the slow process of digesting potentially MANY files. This will use `file.size` only, if `TRUE`. </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> studyAreaName </td>
+   <td style="text-align:left;"> character </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> User-defined label for the current stuyd area. If `NA`, a hash of `studyArea` will be used. </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> usePrepInputs </td>
+   <td style="text-align:left;"> logical </td>
+   <td style="text-align:left;"> TRUE </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> There are currently two ways to run this module: using `reproducible::prepInputs` and a custom approach using googledrive directly. The direct googledrive approach was the original approach; `usePrepInputs = TRUE` is a rewrite from that original code. On Dec 11, 2023, the two ways would be similar, but they may diverge over time. </td>
+  </tr>
   <tr>
    <td style="text-align:left;"> .plotInitialTime </td>
    <td style="text-align:left;"> numeric </td>
@@ -72,55 +136,7 @@ Provide a summary of user-visible parameters.
    <td style="text-align:left;"> FALSE </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> bufferDist </td>
-   <td style="text-align:left;"> numeric </td>
-   <td style="text-align:left;"> 20000 </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Distance (m) to buffer studyArea and rasterToMatch when creating 'Large' versions. </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> climateGCM </td>
-   <td style="text-align:left;"> character </td>
-   <td style="text-align:left;"> CNRM-ESM2-1 </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Global Circulation Model to use for climate projections: currently '13GCMs_ensemble', 'CanESM5', 'CNRM-ESM2-1', or 'CCSM4'. </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> climateSSP </td>
-   <td style="text-align:left;"> numeric </td>
-   <td style="text-align:left;"> 370 </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> SSP emissions scenario for `climateGCM`: one of 245, 370, or 585.[If using 'climateGCM = CCSM4', climateSSP must be one of 45 or 85.] </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> historicalFireYears </td>
-   <td style="text-align:left;"> numeric </td>
-   <td style="text-align:left;"> 1991, 19.... </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> range of years captured by the historical climate data </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> projectedFireYears </td>
-   <td style="text-align:left;"> numeric </td>
-   <td style="text-align:left;"> 2011, 20.... </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> range of years captured by the projected climate data </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> studyAreaName </td>
-   <td style="text-align:left;"> character </td>
-   <td style="text-align:left;"> RIA </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> One of 'AB', 'BC', 'MB', 'NT', 'ON', 'QC', 'SK', 'YT', or 'RIA'. </td>
+   <td style="text-align:left;"> Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant. </td>
   </tr>
 </tbody>
 </table>
@@ -145,37 +161,25 @@ This module consists of a single `init` event that performs all the data prepara
 <tbody>
   <tr>
    <td style="text-align:left;"> rasterToMatch </td>
-   <td style="text-align:left;"> RasterLayer </td>
-   <td style="text-align:left;"> template raster </td>
-   <td style="text-align:left;"> NA </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> rasterToMatchLarge </td>
-   <td style="text-align:left;"> RasterLayer </td>
-   <td style="text-align:left;"> template raster for larger area </td>
+   <td style="text-align:left;"> SpatRaster </td>
+   <td style="text-align:left;"> template raster corresponding to `studyArea`. </td>
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
    <td style="text-align:left;"> rasterToMatchReporting </td>
-   <td style="text-align:left;"> RasterLayer </td>
-   <td style="text-align:left;"> template raster for reporting area </td>
+   <td style="text-align:left;"> SpatRaster </td>
+   <td style="text-align:left;"> template raster corresponding to `studyAreaReporting`. </td>
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
    <td style="text-align:left;"> studyArea </td>
-   <td style="text-align:left;"> SpatialPolygonsDataFrame </td>
+   <td style="text-align:left;"> sf </td>
    <td style="text-align:left;"> study area used for simulation (buffered to mitigate edge effects) </td>
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> studyAreaLarge </td>
-   <td style="text-align:left;"> SpatialPolygonsDataFrame </td>
-   <td style="text-align:left;"> study area used for module parameterization (buffered) </td>
-   <td style="text-align:left;"> NA </td>
-  </tr>
-  <tr>
    <td style="text-align:left;"> studyAreaReporting </td>
-   <td style="text-align:left;"> SpatialPolygonsDataFrame </td>
+   <td style="text-align:left;"> sf </td>
    <td style="text-align:left;"> study area used for reporting/post-processing </td>
    <td style="text-align:left;"> NA </td>
   </tr>
@@ -191,462 +195,34 @@ This module consists of a single `init` event that performs all the data prepara
 
 ### Available data sets
 
-<table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
- <thead>
-  <tr>
-   <th style="text-align:left;"> studyArea </th>
-   <th style="text-align:left;"> GCM </th>
-   <th style="text-align:right;"> SSP </th>
-  </tr>
- </thead>
-<tbody>
-  <tr>
-   <td style="text-align:left;"> AB </td>
-   <td style="text-align:left;"> 13GCMs_ensemble </td>
-   <td style="text-align:right;"> 245 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> AB </td>
-   <td style="text-align:left;"> 13GCMs_ensemble </td>
-   <td style="text-align:right;"> 370 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> AB </td>
-   <td style="text-align:left;"> 13GCMs_ensemble </td>
-   <td style="text-align:right;"> 585 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> AB </td>
-   <td style="text-align:left;"> CanESM5 </td>
-   <td style="text-align:right;"> 245 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> AB </td>
-   <td style="text-align:left;"> CanESM5 </td>
-   <td style="text-align:right;"> 370 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> AB </td>
-   <td style="text-align:left;"> CanESM5 </td>
-   <td style="text-align:right;"> 585 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> AB </td>
-   <td style="text-align:left;"> CCSM4 </td>
-   <td style="text-align:right;"> 45 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> AB </td>
-   <td style="text-align:left;"> CCSM4 </td>
-   <td style="text-align:right;"> 85 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> AB </td>
-   <td style="text-align:left;"> CNRM-ESM2-1 </td>
-   <td style="text-align:right;"> 245 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> AB </td>
-   <td style="text-align:left;"> CNRM-ESM2-1 </td>
-   <td style="text-align:right;"> 370 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> AB </td>
-   <td style="text-align:left;"> CNRM-ESM2-1 </td>
-   <td style="text-align:right;"> 585 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> BC </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> 13GCMs_ensemble </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 245 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> BC </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> 13GCMs_ensemble </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 370 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> BC </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> 13GCMs_ensemble </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 585 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> BC </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> CanESM5 </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 245 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> BC </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> CanESM5 </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 370 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> BC </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> CanESM5 </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 585 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> BC </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> CCSM4 </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 45 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> BC </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> CCSM4 </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 85 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> BC </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> CNRM-ESM2-1 </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 245 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> BC </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> CNRM-ESM2-1 </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 370 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> BC </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> CNRM-ESM2-1 </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 585 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> MB </td>
-   <td style="text-align:left;"> 13GCMs_ensemble </td>
-   <td style="text-align:right;"> 245 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> MB </td>
-   <td style="text-align:left;"> 13GCMs_ensemble </td>
-   <td style="text-align:right;"> 370 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> MB </td>
-   <td style="text-align:left;"> 13GCMs_ensemble </td>
-   <td style="text-align:right;"> 585 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> MB </td>
-   <td style="text-align:left;"> CanESM5 </td>
-   <td style="text-align:right;"> 245 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> MB </td>
-   <td style="text-align:left;"> CanESM5 </td>
-   <td style="text-align:right;"> 370 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> MB </td>
-   <td style="text-align:left;"> CanESM5 </td>
-   <td style="text-align:right;"> 585 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> MB </td>
-   <td style="text-align:left;"> CCSM4 </td>
-   <td style="text-align:right;"> 45 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> MB </td>
-   <td style="text-align:left;"> CCSM4 </td>
-   <td style="text-align:right;"> 85 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> MB </td>
-   <td style="text-align:left;"> CNRM-ESM2-1 </td>
-   <td style="text-align:right;"> 245 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> MB </td>
-   <td style="text-align:left;"> CNRM-ESM2-1 </td>
-   <td style="text-align:right;"> 370 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> MB </td>
-   <td style="text-align:left;"> CNRM-ESM2-1 </td>
-   <td style="text-align:right;"> 585 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> NT </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> 13GCMs_ensemble </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 245 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> NT </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> 13GCMs_ensemble </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 370 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> NT </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> 13GCMs_ensemble </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 585 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> NT </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> CanESM5 </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 245 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> NT </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> CanESM5 </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 370 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> NT </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> CanESM5 </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 585 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> NT </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> CCSM4 </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 45 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> NT </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> CCSM4 </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 85 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> NT </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> CNRM-ESM2-1 </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 245 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> NT </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> CNRM-ESM2-1 </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 370 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> NT </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> CNRM-ESM2-1 </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 585 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> ON </td>
-   <td style="text-align:left;"> 13GCMs_ensemble </td>
-   <td style="text-align:right;"> 245 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> ON </td>
-   <td style="text-align:left;"> 13GCMs_ensemble </td>
-   <td style="text-align:right;"> 370 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> ON </td>
-   <td style="text-align:left;"> 13GCMs_ensemble </td>
-   <td style="text-align:right;"> 585 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> ON </td>
-   <td style="text-align:left;"> CanESM5 </td>
-   <td style="text-align:right;"> 245 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> ON </td>
-   <td style="text-align:left;"> CanESM5 </td>
-   <td style="text-align:right;"> 370 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> ON </td>
-   <td style="text-align:left;"> CanESM5 </td>
-   <td style="text-align:right;"> 585 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> ON </td>
-   <td style="text-align:left;"> CCSM4 </td>
-   <td style="text-align:right;"> 45 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> ON </td>
-   <td style="text-align:left;"> CCSM4 </td>
-   <td style="text-align:right;"> 85 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> ON </td>
-   <td style="text-align:left;"> CNRM-ESM2-1 </td>
-   <td style="text-align:right;"> 245 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> ON </td>
-   <td style="text-align:left;"> CNRM-ESM2-1 </td>
-   <td style="text-align:right;"> 370 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> ON </td>
-   <td style="text-align:left;"> CNRM-ESM2-1 </td>
-   <td style="text-align:right;"> 585 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> QC </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> CanESM5 </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 370 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> RIA </td>
-   <td style="text-align:left;"> 13GCMs_ensemble </td>
-   <td style="text-align:right;"> 245 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> RIA </td>
-   <td style="text-align:left;"> 13GCMs_ensemble </td>
-   <td style="text-align:right;"> 370 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> RIA </td>
-   <td style="text-align:left;"> 13GCMs_ensemble </td>
-   <td style="text-align:right;"> 585 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> RIA </td>
-   <td style="text-align:left;"> CanESM5 </td>
-   <td style="text-align:right;"> 245 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> RIA </td>
-   <td style="text-align:left;"> CanESM5 </td>
-   <td style="text-align:right;"> 370 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> RIA </td>
-   <td style="text-align:left;"> CanESM5 </td>
-   <td style="text-align:right;"> 585 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> RIA </td>
-   <td style="text-align:left;"> CCSM4 </td>
-   <td style="text-align:right;"> 45 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> RIA </td>
-   <td style="text-align:left;"> CCSM4 </td>
-   <td style="text-align:right;"> 85 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> RIA </td>
-   <td style="text-align:left;"> CNRM-ESM2-1 </td>
-   <td style="text-align:right;"> 245 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> RIA </td>
-   <td style="text-align:left;"> CNRM-ESM2-1 </td>
-   <td style="text-align:right;"> 370 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> RIA </td>
-   <td style="text-align:left;"> CNRM-ESM2-1 </td>
-   <td style="text-align:right;"> 585 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> SK </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> 13GCMs_ensemble </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 245 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> SK </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> 13GCMs_ensemble </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 370 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> SK </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> 13GCMs_ensemble </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 585 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> SK </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> CanESM5 </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 245 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> SK </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> CanESM5 </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 370 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> SK </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> CanESM5 </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 585 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> SK </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> CCSM4 </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 45 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> SK </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> CCSM4 </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 85 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> SK </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> CNRM-ESM2-1 </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 245 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> SK </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> CNRM-ESM2-1 </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 370 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> SK </td>
-   <td style="text-align:left;background-color: #f0f0f0 !important;"> CNRM-ESM2-1 </td>
-   <td style="text-align:right;background-color: #f0f0f0 !important;"> 585 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> YT </td>
-   <td style="text-align:left;"> 13GCMs_ensemble </td>
-   <td style="text-align:right;"> 245 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> YT </td>
-   <td style="text-align:left;"> 13GCMs_ensemble </td>
-   <td style="text-align:right;"> 370 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> YT </td>
-   <td style="text-align:left;"> 13GCMs_ensemble </td>
-   <td style="text-align:right;"> 585 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> YT </td>
-   <td style="text-align:left;"> CanESM5 </td>
-   <td style="text-align:right;"> 245 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> YT </td>
-   <td style="text-align:left;"> CanESM5 </td>
-   <td style="text-align:right;"> 370 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> YT </td>
-   <td style="text-align:left;"> CanESM5 </td>
-   <td style="text-align:right;"> 585 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> YT </td>
-   <td style="text-align:left;"> CCSM4 </td>
-   <td style="text-align:right;"> 45 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> YT </td>
-   <td style="text-align:left;"> CCSM4 </td>
-   <td style="text-align:right;"> 85 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> YT </td>
-   <td style="text-align:left;"> CNRM-ESM2-1 </td>
-   <td style="text-align:right;"> 245 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> YT </td>
-   <td style="text-align:left;"> CNRM-ESM2-1 </td>
-   <td style="text-align:right;"> 370 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> YT </td>
-   <td style="text-align:left;"> CNRM-ESM2-1 </td>
-   <td style="text-align:right;"> 585 </td>
-  </tr>
-</tbody>
-</table>
+<img src="../../../../../../R-dev/climateData/extdata/tile_map.png" width="852" />
+
+
+```r
+## historic data
+available("historic")[["years"]]
+available("historic_normals")[["periods"]]
+
+## future climate scenarios
+available("future")[["gcms"]]
+available("future")[["ssps"]]
+```
+
+```
+##   [1] 1901 1902 1903 1904 1905 1906 1907 1908 1909 1910 1911 1912 1913 1914 1915
+##  [16] 1916 1917 1918 1919 1920 1921 1922 1923 1924 1925 1926 1927 1928 1929 1930
+##  [31] 1931 1932 1933 1934 1935 1936 1937 1938 1939 1940 1941 1942 1943 1944 1945
+##  [46] 1946 1947 1948 1949 1950 1951 1952 1953 1954 1955 1956 1957 1958 1959 1960
+##  [61] 1961 1962 1963 1964 1965 1966 1967 1968 1969 1970 1971 1972 1973 1974 1975
+##  [76] 1976 1977 1978 1979 1980 1981 1982 1983 1984 1985 1986 1987 1988 1989 1990
+##  [91] 1991 1992 1993 1994 1995 1996 1997 1998 1999 2000 2001 2002 2003 2004 2005
+## [106] 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020
+## [121] 2021 2022
+## [1] "1901_1930" "1911_1940" "1921_1950" "1931_1960" "1941_1970" "1951_1980"
+## [7] "1971_2000" "1981_2010" "1991_2020"
+## [1] "CanESM5"     "CNRM-ESM2-1"
+## [1] "245" "370" "585"
+```
 
 ### Additional data sets
 
@@ -696,17 +272,17 @@ Description of the module outputs.
 <tbody>
   <tr>
    <td style="text-align:left;"> ATAstack </td>
-   <td style="text-align:left;"> RasterStack </td>
-   <td style="text-align:left;"> annual projected mean annual temperature anomalies, units stored as tenth of a degree </td>
+   <td style="text-align:left;"> SpatRaster </td>
+   <td style="text-align:left;"> annual projected mean annual temperature anomalies </td>
   </tr>
   <tr>
    <td style="text-align:left;"> CMIstack </td>
-   <td style="text-align:left;"> RasterStack </td>
+   <td style="text-align:left;"> SpatRaster </td>
    <td style="text-align:left;"> annual projected mean climate moisture deficit </td>
   </tr>
   <tr>
    <td style="text-align:left;"> CMInormal </td>
-   <td style="text-align:left;"> RasterLayer </td>
+   <td style="text-align:left;"> SpatRaster </td>
    <td style="text-align:left;"> Climate Moisture Index Normals from 1950-2010 </td>
   </tr>
   <tr>

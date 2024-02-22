@@ -18,7 +18,8 @@ if (!require("Require", quietly = TRUE)) {
   library(Require)
 }
 Require("SpaDES.core", require = FALSE, upgrade = FALSE)
-Require(c("knitr", "kableExtra", "magrittr"))
+Require(c("knitr", "kableExtra",
+          "PredictiveEcology/climateData@development"))
 ```
 
 # Overview
@@ -59,15 +60,17 @@ knitr::kable(df_inputs)
 ### Available data sets
 
 ```{r climateStudyAreas, eval = TRUE, echo = FALSE, message = FALSE, warning = FALSE}
-#csv <- file.path("modules", "canClimateData", "data", "climateDataURLs.csv")
-csv <- file.path("data", "climateDataURLs.csv")
-df_climate <- read.csv(csv, stringsAsFactors = FALSE)
-df_climate <- subset(df_climate, select = c("studyArea", "GCM", "SSP")) |> na.omit() |> unique()
-df_climate <- df_climate[order(df_climate$studyArea, df_climate$GCM, df_climate$SSP), ]
-g <- which(as.integer(as.factor(df_climate$studyArea)) %% 2 == 0) ## alternate by group
-knitr::kable(df_climate, row.names = FALSE) %>% 
-  kable_styling(full_width = FALSE) %>% 
-  row_spec(g, background = "#f0f0f0")
+knitr::include_graphics(system.file("extdata/tile_map.png", package = "climateData"))
+```
+
+```{r climateDataAvail, eval = TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+## historic data
+available("historic")[["years"]]
+available("historic_normals")[["periods"]]
+
+## future climate scenarios
+available("future")[["gcms"]]
+available("future")[["ssps"]]
 ```
 
 ### Additional data sets
