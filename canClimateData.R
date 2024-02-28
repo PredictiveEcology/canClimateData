@@ -225,8 +225,8 @@ Init <- function(sim) {
   sim$CMInormal <- climateRasters$historic_CMI_normal
 
   ## objects for fireSense:
-  sim$historicalClimateRasters <- climateRasters$historic_MDC
-  sim$projectedClimateRasters <- climateRasters$future_MDC
+  sim$historicalClimateRasters <- list(MDC = climateRasters$historic_MDC)
+  sim$projectedClimateRasters <- list(MDC = climateRasters$future_MDC)
 
   return(invisible(sim))
 }
