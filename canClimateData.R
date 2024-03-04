@@ -259,16 +259,16 @@ Init <- function(sim) {
   if (P(sim)$projectedType == "hindcast") {
     ## use same (sampled) years for each climate variable!
     rndsmp <- sample(x = seq(terra::nlyr(climateRasters$historic_MDC)),
-                     size = terra::nlyr(climateRasters$projected_MDC),
+                     size = length(projected_yrs),
                      replace = TRUE)
 
-    climateRasters$projected_ATA <- climateRasters$projected_ATA[rndsmp]
+    climateRasters$projected_ATA <- climateRasters$projected_ATA[[rndsmp]]
     terra::set.names(climateRasters$projected_ATA, value = paste0("year", projected_yrs))
 
-    climateRasters$projected_CMI <- climateRasters$projected_CMI[rndsmp]
+    climateRasters$projected_CMI <- climateRasters$projected_CMI[[rndsmp]]
     terra::set.names(climateRasters$projected_CMI, value = paste0("year", projected_yrs))
 
-    climateRasters$projected_MDC <- climateRasters$projected_MDC[rndsmp]
+    climateRasters$projected_MDC <- climateRasters$projected_MDC[[rndsmp]]
     terra::set.names(climateRasters$projected_MDC, value = paste0("year", projected_yrs))
   }
 
