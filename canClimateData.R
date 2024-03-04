@@ -211,7 +211,7 @@ Init <- function(sim) {
       projected_MDC = list(
         vars = c(sprintf("historic_PPT%02d", 4:9), sprintf("historic_Tmax%02d", 4:9)),
         fun = quote(calcMDC),
-        .dots = list(historic = historic_yrs)
+        .dots = list(historic_years = historic_yrs)
       )
     )
   }
