@@ -169,17 +169,17 @@ Init <- function(sim) {
         fun = quote(calcMDC),
         .dots = list(historic_years = historic_yrs)
       ),
-      future_ATA = list(
+      projected_ATA = list(
         vars = c("future_MAT", "historic_MAT_normal"),
         fun = quote(calcATA),
         .dots = list(historic_period = historic_prd, future_years = projected_yrs)
       ),
-      future_CMI = list(
+      projected_CMI = list(
         vars = "future_CMI",
         fun = quote(calcAsIs),
         .dots = list(future_years = projected_yrs)
       ),
-      future_MDC = list(
+      projected_MDC = list(
         vars = c(sprintf("future_PPT%02d", 4:9), sprintf("future_Tmax%02d", 4:9)),
         fun = quote(calcMDC),
         .dots = list(future_years = projected_yrs)
@@ -197,20 +197,18 @@ Init <- function(sim) {
         fun = quote(calcMDC),
         .dots = list(historic_years = historic_yrs)
       ),
-      ## future_ATA will really be historic - and will be sampled below
-      future_ATA = list(
+      ## projected climate variables will be prepared from historic and sampled below
+      projected_ATA = list(
         vars = c("historic_MAT", "historic_MAT_normal"),
         fun = quote(calcATA),
         .dots = list(historic_period = historic_prd, historic_years = historic_yrs)
       ),
-      ## future_ATA will really be historic - and will be sampled below
-      future_CMI = list(
+      projected_CMI = list(
         vars = "historic_CMI",
         fun = quote(calcAsIs),
         .dots = list(historic_years = historic_yrs)
       ),
-      ## future_ATA will really be historic - and will be sampled below
-      future_MDC = list(
+      projected_MDC = list(
         vars = c(sprintf("historic_PPT%02d", 4:9), sprintf("historic_Tmax%02d", 4:9)),
         fun = quote(calcMDC),
         .dots = list(historic = historic_yrs)
@@ -245,43 +243,43 @@ Init <- function(sim) {
     gsub("MDC_historic_", "year", x = _) |>
     terra::set.names(climateRasters$historic_MDC, value = _)
 
-  names(climateRasters$future_ATA) |>
-    gsub("ATA_future_", "year", x = _) |>
-    terra::set.names(climateRasters$future_ATA, value = _)
+  names(climateRasters$projected_ATA) |>
+    gsub("ATA_future_|ATA_historic_", "year", x = _) |>
+    terra::set.names(climateRasters$projected_ATA, value = _)
 
-  names(climateRasters$future_CMI) |>
-    gsub("CMI_future_", "year", x = _) |>
-    terra::set.names(climateRasters$future_CMI, value = _)
+  names(climateRasters$projected_CMI) |>
+    gsub("CMI_future_|CMI_historic_", "year", x = _) |>
+    terra::set.names(climateRasters$projected_CMI, value = _)
 
-  names(climateRasters$future_MDC) |>
-    gsub("MDC_future_", "year", x = _) |>
-    terra::set.names(climateRasters$future_MDC, value = _)
+  names(climateRasters$projected_MDC) |>
+    gsub("MDC_future_|MDC_historic_", "year", x = _) |>
+    terra::set.names(climateRasters$projected_MDC, value = _)
 
   ## sample use historic layers for use with hindcasting
   if (P(sim)$projectedType == "hindcast") {
     ## use same (sampled) years for each climate variable!
     rndsmp <- sample(x = seq(terra::nlyr(climateRasters$historic_MDC)),
-                     size = terra::nlyr(climateRasters$future_MDC),
+                     size = terra::nlyr(climateRasters$projected_MDC),
                      replace = TRUE)
 
-    climateRasters$future_ATA <- climateRasters$future_ATA[rndsmp]
-    terra::set.names(climateRasters$future_ATA, value = paste0("year", projected_yrs))
+    climateRasters$projected_ATA <- climateRasters$projected_ATA[rndsmp]
+    terra::set.names(climateRasters$projected_ATA, value = paste0("year", projected_yrs))
 
-    climateRasters$future_CMI <- climateRasters$future_CMI[rndsmp]
-    terra::set.names(climateRasters$future_CMI, value = paste0("year", projected_yrs))
+    climateRasters$projected_CMI <- climateRasters$projected_CMI[rndsmp]
+    terra::set.names(climateRasters$projected_CMI, value = paste0("year", projected_yrs))
 
-    climateRasters$future_MDC <- climateRasters$future_MDC[rndsmp]
-    terra::set.names(climateRasters$future_MDC, value = paste0("year", projected_yrs))
+    climateRasters$projected_MDC <- climateRasters$projected_MDC[rndsmp]
+    terra::set.names(climateRasters$projected_MDC, value = paste0("year", projected_yrs))
   }
 
   ## objects for LandR.CS:
-  sim$ATAstack <- climateRasters$future_ATA
-  sim$CMIstack <- climateRasters$future_CMI
+  sim$ATAstack <- climateRasters$projected_ATA
+  sim$CMIstack <- climateRasters$projected_CMI
   sim$CMInormal <- climateRasters$historic_CMI_normal
 
   ## objects for fireSense:
   sim$historicalClimateRasters <- list(MDC = climateRasters$historic_MDC)
-  sim$projectedClimateRasters <- list(MDC = climateRasters$future_MDC)
+  sim$projectedClimateRasters <- list(MDC = climateRasters$projected_MDC)
 
   return(invisible(sim))
 }
