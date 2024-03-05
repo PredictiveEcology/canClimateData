@@ -284,7 +284,7 @@ Init <- function(sim) {
   # climateRasters <- parallel::parLapply(cl, climateRastersWrapped, function(x) {
   #   terra::writeRaster(x, .suffix(terra::sources(x), "updated"), overwrite = TRUE)
   # })
-  # # climateRasters <- lapply(climateRasters, terra::unwrap)
+  # climateRasters <- lapply(climateRasters, terra::unwrap)
 
   ## objects for LandR.CS:
   sim$ATAstack <- climateRasters$projected_ATA
