@@ -194,7 +194,8 @@ Init <- function(sim) {
     studyArea = sim$studyArea,
     studyAreaName = P(sim)$studyAreaName,
     rasterToMatch = sim$rasterToMatch
-  )
+  ) |>
+    Cache(omitArgs = c("climatePath", "climatePathOut")) ## TODO: improve use of cache
 
   ## rename list elements and layers to match expected names downstream
   names(climateRasters) <- names(climateVariables)
