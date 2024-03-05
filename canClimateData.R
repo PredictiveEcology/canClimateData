@@ -264,14 +264,27 @@ Init <- function(sim) {
                      replace = TRUE)
 
     climateRasters$projected_ATA <- climateRasters$projected_ATA[[rndsmp]]
-    terra::set.names(climateRasters$projected_ATA, value = paste0("year", projected_yrs))
+    terra::set.names(climateRasters$projected_ATA, paste0("year", projected_yrs))
 
     climateRasters$projected_CMI <- climateRasters$projected_CMI[[rndsmp]]
-    terra::set.names(climateRasters$projected_CMI, value = paste0("year", projected_yrs))
+    terra::set.names(climateRasters$projected_CMI, paste0("year", projected_yrs))
 
     climateRasters$projected_MDC <- climateRasters$projected_MDC[[rndsmp]]
-    terra::set.names(climateRasters$projected_MDC, value = paste0("year", projected_yrs))
+    terra::set.names(climateRasters$projected_MDC, paste0("year", projected_yrs))
   }
+
+  ## save rasters to disk with updated layers names
+
+  ## TODO: parallelize this so it's faster? wrapping SpatRasters is [too] slow here?
+  climateRasters <- lapply(climateRasters, function(x) {
+    terra::writeRaster(x, .suffix(terra::sources(x), "updated"), overwrite = TRUE)
+  })
+
+  # climateRastersWrapped <- lapply(climateRasters, terra::wrap)
+  # climateRasters <- parallel::parLapply(cl, climateRastersWrapped, function(x) {
+  #   terra::writeRaster(x, .suffix(terra::sources(x), "updated"), overwrite = TRUE)
+  # })
+  # # climateRasters <- lapply(climateRasters, terra::unwrap)
 
   ## objects for LandR.CS:
   sim$ATAstack <- climateRasters$projected_ATA
