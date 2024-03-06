@@ -2,12 +2,10 @@ on:
   pull_request:
     branches:
       - main
-      - master
       - development
   push:
     branches:
       - main
-      - master
       - development
     paths:
       - .github/workflows/render-module-rmd.yaml
@@ -26,7 +24,7 @@ jobs:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - uses: r-lib/actions/setup-pandoc@v2
 
