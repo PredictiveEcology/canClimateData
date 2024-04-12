@@ -74,12 +74,6 @@ defineModule(sim, list(
                  desc = "study area used for reporting/post-processing", sourceURL = NA)
   ),
   outputObjects = bindrows(
-    createsOutput("ATAstack", "SpatRaster",
-                  desc = "annual projected mean annual temperature anomalies"),
-    createsOutput("CMIstack", "SpatRaster",
-                  desc = "annual projected mean climate moisture deficit"),
-    createsOutput("CMInormal", "SpatRaster",
-                  desc = "Climate Moisture Index Normals from 1950-2010"),
     createsOutput("historicalClimateRasters", "list",
                   desc = "list of a single raster stack - historical MDC calculated from ClimateNA data"),
     createsOutput("projectedClimateRasters", "list",
@@ -221,13 +215,12 @@ Init <- function(sim) {
     terra::set.names(climateRasters$future_MDC, value = _)
 
   ## objects for LandR.CS:
-  sim$ATAstack <- climateRasters$future_ATA
-  sim$CMIstack <- climateRasters$future_CMI
-  sim$CMInormal <- climateRasters$historic_CMI_normal
-
   ## objects for fireSense:
-  sim$historicalClimateRasters <- list(MDC = climateRasters$historic_MDC)
-  sim$projectedClimateRasters <- list(MDC = climateRasters$future_MDC)
+  sim$historicalClimateRasters <- list(MDC = climateRasters$historic_MDC,
+                                       CMI_normal = climateRasters$historic_CMI_normal)
+  sim$projectedClimateRasters <- list(MDC = climateRasters$future_MDC,
+                                      ATA = climateRasters$future_ATA,
+                                      CMI = climateRasters$futureCMI)
 
   return(invisible(sim))
 }
