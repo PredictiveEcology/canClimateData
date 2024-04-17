@@ -220,7 +220,7 @@ Init <- function(sim) {
                                        CMI_normal = climateRasters$historic_CMI_normal)
   sim$projectedClimateRasters <- list(MDC = climateRasters$future_MDC,
                                       ATA = climateRasters$future_ATA,
-                                      CMI = climateRasters$futureCMI)
+                                      CMI = climateRasters$future_CMI)
 
   return(invisible(sim))
 }
