@@ -65,13 +65,9 @@ defineModule(sim, list(
   inputObjects = bindrows(
     expectsInput("rasterToMatch", "SpatRaster",
                  desc = "template raster corresponding to `studyArea`.", sourceURL = NA),
-    expectsInput("rasterToMatchReporting", "SpatRaster",
-                 desc = "template raster corresponding to `studyAreaReporting`.", sourceURL = NA),
     expectsInput("studyArea", "sf",
                  desc = "study area used for simulation (buffered to mitigate edge effects)",
-                 sourceURL = NA),
-    expectsInput("studyAreaReporting", "sf",
-                 desc = "study area used for reporting/post-processing", sourceURL = NA)
+                 sourceURL = NA)
   ),
   outputObjects = bindrows(
     createsOutput("historicalClimateRasters", "list",
@@ -245,10 +241,6 @@ Init <- function(sim) {
       sf::st_buffer(P(sim)$bufferDist)
   }
 
-  if (!suppliedElsewhere("studyAreaReporting", sim)) {
-    sim$studyAreaReporting <- sim$studyArea
-  }
-
   if (is.na(P(sim)$studyAreaName)) {
     ## use unique hash as study area name
     P(sim, "studyAreaName") <- studyAreaName(sim$studyArea)
@@ -262,12 +254,6 @@ Init <- function(sim) {
                                useCache = P(sim)$.useCache,
                                filename2 = NULL)
     writeRaster(sim$rasterToMatch, file.path(dPath, paste0(P(sim)$studyAreaName, "_rtm.tif")),
-                datatype = "INT1U", overwrite = TRUE)
-  }
-
-  if (!suppliedElsewhere("rasterToMatchReporting", sim)) {
-    sim$rasterToMatchReporting <- Cache(maskTo, sim$rasterToMatch, maskTo = sim$studyAreaReporting)
-    writeRaster(sim$rasterToMatchReporting,  file.path(dPath, paste0(P(sim)$studyAreaName, "_rtmr.tif")),
                 datatype = "INT1U", overwrite = TRUE)
   }
 
