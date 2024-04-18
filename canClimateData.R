@@ -12,7 +12,7 @@ defineModule(sim, list(
     person("Tati", "Micheletti", email = "tati.micheletti@gmail.com", role = "ctb")
   ),
   childModules = character(0),
-  version = list(canClimateData = "1.0.0"),
+  version = list(canClimateData = "1.0.1"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -35,6 +35,13 @@ defineModule(sim, list(
                     paste("SSP emissions scenario for `climateGCM`: one of 245, 370, or 585.")),
     defineParameter("historicalFireYears", "numeric", 1991:2022, NA, NA,
                     paste("range of years captured by the historical climate data")),
+    defineParameter("outputDir", "character", NA_character_, NA, NA,
+                    paste("Directory path for prepared climate data rasters.",
+                          "User should specify a shared directory",
+                          "(e.g., when running multiple simulation replicates)",
+                          "to avoid multiple copies of the climate data.",
+                          "If not specified by the user, a subdirectory of the simulation output",
+                          "directory will be used (i.e., `file.path(outputPath(sim), 'climate')`.")),
     defineParameter("projectedFireYears", "numeric", 2011:2100, NA, NA,
                     paste("range of years captured by the projected climate data")),
     defineParameter("projectedType", "character", "forecast", NA, NA,
@@ -47,11 +54,6 @@ defineModule(sim, list(
     defineParameter("studyAreaName", "character", NA_character_, NA, NA,
                     paste("User-defined label for the current stuyd area.",
                           "If `NA`, a hash of `studyArea` will be used.")),
-    defineParameter("usePrepInputs", "logical", TRUE, NA, NA,
-                    "There are currently two ways to run this module: using `reproducible::prepInputs` and ",
-                    "a custom approach using googledrive directly. The direct googledrive approach was the ",
-                    "original approach; `usePrepInputs = TRUE` is a rewrite from that original code. On Dec 11, 2023, ",
-                    "the two ways would be similar, but they may diverge over time."),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA,
                     "Describes the simulation time at which the first plot event should occur."),
     defineParameter(".plotInterval", "numeric", NA, NA, NA,
@@ -110,7 +112,11 @@ Init <- function(sim) {
 
   ## separate intermediate outputs from raw inputs, to reduce file conflicts on shared drives
   climatePath <- file.path(inputPath(sim), "climate") |> checkPath(create = TRUE) |> asPath(1)
-  climatePathOut <- file.path(outputPath(sim), "climate") |> checkPath(create = TRUE) |> asPath(1)
+  climatePathOut <- if (is.null(P(sim)$outputDir) || is.na(P(sim)$outputDir)) {
+    file.path(outputPath(sim), "climate") |> checkPath(create = TRUE) |> asPath(1)
+  } else {
+    file.path(P(sim)$outputDir) |> checkPath(create = TRUE) |> asPath(1)
+  }
 
   if (is.na(P(sim)$studyAreaName)) {
     ## use unique hash as study area name
