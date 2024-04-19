@@ -19,7 +19,7 @@ defineModule(sim, list(
   documentation = deparse(list("README.md", "canClimateData.Rmd")),
   reqdPkgs = list("archive", "digest", "geodata", "googledrive", "purrr",
                   "R.utils", "sf", "spatialEco", "terra",
-                  "PredictiveEcology/climateData@development (>= 2.0.4)",
+                  "PredictiveEcology/climateData@main (>= 2.0.5)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9046)",
                   "PredictiveEcology/LandR@development (>= 1.1.0.9064)",
                   "PredictiveEcology/reproducible@modsForLargeArchives (>= 2.0.10.9018)", ## TODO: use development once merged
@@ -51,7 +51,7 @@ defineModule(sim, list(
                     paste("`prepClimateData` uses `prepInputs` internally; set this to `TRUE` to avoid",
                           "the slow process of digesting potentially MANY files.",
                           "This will use `file.size` only, if `TRUE`.")),
-    defineParameter("studyAreaName", "character", NA_character_, NA, NA,
+    defineParameter(".studyAreaName", "character", NA_character_, NA, NA,
                     paste("User-defined label for the current stuyd area.",
                           "If `NA`, a hash of `studyArea` will be used.")),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA,
@@ -118,9 +118,9 @@ Init <- function(sim) {
     file.path(P(sim)$outputDir) |> checkPath(create = TRUE) |> asPath(1)
   }
 
-  if (is.na(P(sim)$studyAreaName)) {
+  if (is.na(P(sim)$.studyAreaName)) {
     ## use unique hash as study area name
-    P(sim, "studyAreaName") <- studyAreaName(sim$studyArea)
+    P(sim, ".studyAreaName") <- studyAreaName(sim$studyArea)
   }
 
   ## ensure this matches mod$targetCRS defined in .inputObjects !!
@@ -141,7 +141,7 @@ Init <- function(sim) {
 
   digestSA_RTM <- .robustDigest(list(sim.studyArea = sim$studyArea,
                                      sim.rasterToMatch = sim$rasterToMatch))
-  sim$studyArea$studyAreaName <- paste0(P(sim)$studyAreaName, collapse = "_") ## makes it a data.frame
+  sim$studyArea$studyAreaName <- paste0(P(sim)$.studyAreaName, collapse = "_") ## makes it a data.frame
 
   stopifnot(getOption("reproducible.useNewDigestAlgorithm") == 2)
 
@@ -224,7 +224,7 @@ Init <- function(sim) {
     ssp = SSP,
     cl = NULL, ## TODO: allow user to pass their own cl object to module
     studyArea = sim$studyArea,
-    studyAreaName = P(sim)$studyAreaName,
+    studyAreaName = P(sim)$.studyAreaName,
     rasterToMatch = sim$rasterToMatch
   ) |>
     Cache(omitArgs = c("climatePath", "climatePathOut")) ## TODO: improve use of cache
@@ -312,9 +312,9 @@ Init <- function(sim) {
       sf::st_buffer(P(sim)$bufferDist)
   }
 
-  if (is.na(P(sim)$studyAreaName)) {
+  if (is.na(P(sim)$.studyAreaName)) {
     ## use unique hash as study area name
-    P(sim, "studyAreaName") <- studyAreaName(sim$studyArea)
+    P(sim, ".studyAreaName") <- studyAreaName(sim$studyArea)
   }
 
   if (!suppliedElsewhere("rasterToMatch", sim)) {
@@ -324,7 +324,7 @@ Init <- function(sim) {
                                destinationPath = dPath,
                                useCache = P(sim)$.useCache,
                                filename2 = NULL)
-    writeRaster(sim$rasterToMatch, file.path(dPath, paste0(P(sim)$studyAreaName, "_rtm.tif")),
+    writeRaster(sim$rasterToMatch, file.path(dPath, paste0(P(sim)$.studyAreaName, "_rtm.tif")),
                 datatype = "INT1U", overwrite = TRUE)
   }
 
