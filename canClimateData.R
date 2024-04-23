@@ -33,7 +33,9 @@ defineModule(sim, list(
                           "currently 'CanESM5' or 'CNRM-ESM2-1'.")),
     defineParameter("climateSSP", "numeric", 370, NA, NA,
                     paste("SSP emissions scenario for `climateGCM`: one of 245, 370, or 585.")),
-    defineParameter("historicalFireYears", "numeric", 1991:2022, NA, NA,
+    defineParameter("historicalClimatePeriod", "character", c("1951_1980", "1981_2010"), NA, NA, 
+                    "period to use for historical climate normals"), 
+    defineParameter("historicalClimateYears", "numeric", 1991:2022, NA, NA,
                     paste("range of years captured by the historical climate data")),
     defineParameter("outputDir", "character", NA_character_, NA, NA,
                     paste("Directory path for prepared climate data rasters.",
@@ -42,7 +44,9 @@ defineModule(sim, list(
                           "to avoid multiple copies of the climate data.",
                           "If not specified by the user, a subdirectory of the simulation output",
                           "directory will be used (i.e., `file.path(outputPath(sim), 'climate')`.")),
-    defineParameter("projectedFireYears", "numeric", 2011:2100, NA, NA,
+    defineParameter("projectedClimatePeriod", "character", NULL, NA, NA, 
+                    "period to use for projected climate normals"),
+    defineParameter("projectedClimateYears", "numeric", 2011:2100, NA, NA,
                     paste("range of years captured by the projected climate data")),
     defineParameter("projectedType", "character", "forecast", NA, NA,
                     paste("one of 'forecast' or 'hindcast' to prepare either projected future,",
@@ -68,6 +72,17 @@ defineModule(sim, list(
                           "and time are not relevant."))
   ),
   inputObjects = bindrows(
+    expectsInput("climateVariables", "list", 
+                 paste("a list, named by climate variable using 'projected_' or 'historical_'",
+                       "prefixes, with each list element containing a list of three arguments:",
+                       "vars - the raw variables used to derive the target variable,",
+                       "fun - the quoted function used to derive the target variable, where", 
+                       "'quote(calcAsIs)' denotes target variables that ARE the raw variable,",
+                       "and dots - additional arguments passed to 'fun'. See the .inputObjects",
+                       "for examples of how to build this object and ?climateData::prepClimateLayers", 
+                       "for how it is used . The GCM, SSP, and selected years, whether projected or", 
+                       "historical, are set by module parameters and must be identical for all variables"),
+                       sourceURL = NA),
     expectsInput("rasterToMatch", "SpatRaster",
                  desc = "template raster corresponding to `studyArea`.", sourceURL = NA),
     expectsInput("studyArea", "sf",
@@ -146,80 +161,22 @@ Init <- function(sim) {
   stopifnot(getOption("reproducible.useNewDigestAlgorithm") == 2)
 
   ## PREPARE CLIMATE LAYERS
-  historic_prd <- c("1951_1980", "1981_2010")
-  historic_yrs <- P(sim)$historicalFireYears
-  projected_yrs <- P(sim)$projectedFireYears
+  historic_prd <- P(sim)$historicalClimatePeriod
+  historic_yrs <- P(sim)$historicalClimateYears
+  projected_yrs <- P(sim)$projectedClimateYears
+  future_prd <- P(sim)$projectedClimatePeriod
 
   GCM <- P(sim)$climateGCM
   SSP <- P(sim)$climateSSP
 
-  if (P(sim)$projectedType == "forecast") {
-    climateVariables <- list(
-      historic_CMI_normal = list(
-        vars = "historic_CMI_normal",
-        fun = quote(calcCMInormal),
-        .dots = list(historic_period = historic_prd, historic_years = historic_yrs)
-      ),
-      historic_MDC = list(
-        vars = c(sprintf("historic_PPT%02d", 4:9), sprintf("historic_Tmax%02d", 4:9)),
-        fun = quote(calcMDC),
-        .dots = list(historic_years = historic_yrs)
-      ),
-      projected_ATA = list(
-        vars = c("future_MAT", "historic_MAT_normal"),
-        fun = quote(calcATA),
-        .dots = list(historic_period = historic_prd, future_years = projected_yrs)
-      ),
-      projected_CMI = list(
-        vars = "future_CMI",
-        fun = quote(calcAsIs),
-        .dots = list(future_years = projected_yrs)
-      ),
-      projected_MDC = list(
-        vars = c(sprintf("future_PPT%02d", 4:9), sprintf("future_Tmax%02d", 4:9)),
-        fun = quote(calcMDC),
-        .dots = list(future_years = projected_yrs)
-      )
-    )
-  } else if (P(sim)$projectedType == "hindcast") {
-    climateVariables <- list(
-      historic_CMI_normal = list(
-        vars = "historic_CMI_normal",
-        fun = quote(calcCMInormal),
-        .dots = list(historic_period = historic_prd, historic_years = historic_yrs)
-      ),
-      historic_MDC = list(
-        vars = c(sprintf("historic_PPT%02d", 4:9), sprintf("historic_Tmax%02d", 4:9)),
-        fun = quote(calcMDC),
-        .dots = list(historic_years = historic_yrs)
-      ),
-      ## projected climate variables will be prepared from historic and sampled below
-      projected_ATA = list(
-        vars = c("historic_MAT", "historic_MAT_normal"),
-        fun = quote(calcATA),
-        .dots = list(historic_period = historic_prd, historic_years = historic_yrs)
-      ),
-      projected_CMI = list(
-        vars = "historic_CMI",
-        fun = quote(calcAsIs),
-        .dots = list(historic_years = historic_yrs)
-      ),
-      projected_MDC = list(
-        vars = c(sprintf("historic_PPT%02d", 4:9), sprintf("historic_Tmax%02d", 4:9)),
-        fun = quote(calcMDC),
-        .dots = list(historic_years = historic_yrs)
-      )
-    )
-  }
-
   climateRasters <- prepClimateLayers(
-    climateVarsList = climateVariables,
+    climateVarsList = sim$climateVariables,
     srcdir = climatePath,    ## 'src' is the place for raw inputs, downloaded from Google Drive
     dstdir = climatePathOut, ## 'dst' is the place for intermediate + final outputs
     historic_years = historic_yrs,
     future_years = projected_yrs,
     historic_period = historic_prd,
-    future_period = NULL,
+    future_period =  future_prd,
     gcm = GCM,
     ssp = SSP,
     cl = NULL, ## TODO: allow user to pass their own cl object to module
@@ -230,64 +187,55 @@ Init <- function(sim) {
     Cache(omitArgs = c("climatePath", "climatePathOut")) ## TODO: improve use of cache
 
   ## rename list elements and layers to match expected names downstream
-  names(climateRasters) <- names(climateVariables)
+  names(climateRasters) <- names(sim$climateVariables)
 
-  names(climateRasters$historic_CMI_normal) |>
-    gsub("CMI_normal_", "period", x = _) |>
-    terra::set.names(climateRasters$historic_CMI_normal, value = _)
-
-  names(climateRasters$historic_MDC) |>
-    gsub("MDC_historic_", "year", x = _) |>
-    terra::set.names(climateRasters$historic_MDC, value = _)
-
-  names(climateRasters$projected_ATA) |>
-    gsub("ATA_future_|ATA_historic_", "year", x = _) |>
-    terra::set.names(climateRasters$projected_ATA, value = _)
-
-  names(climateRasters$projected_CMI) |>
-    gsub("CMI_future_|CMI_historic_", "year", x = _) |>
-    terra::set.names(climateRasters$projected_CMI, value = _)
-
-  names(climateRasters$projected_MDC) |>
-    gsub("MDC_future_|MDC_historic_", "year", x = _) |>
-    terra::set.names(climateRasters$projected_MDC, value = _)
+  #rename normals with period prefix and annuals with year prefix
+  last4 <- function(x) substr(x, nchar(x) - 3, nchar(x))
+  fixNames <- function(rstack, preFix){
+    terra::set.names(rstack, paste0(preFix, last4(names(rstack))))
+    return(rstack)
+  }
+  
+  normals <- grep("normal", names(sim$climateVariables))
+  climateRasters[normals] <- lapply(climateRasters[normals], fixNames, preFix = "period")
+  annuals <- grep("normal", names(sim$climateVariables), invert = TRUE)
+  climateRasters[annuals] <- lapply(climateRasters[annuals], fixNames, preFix = "year")
+  
+  
+  historicalClimateRasters <- climateRasters[grep(pattern = "historic_", 
+                                                  x = names(climateRasters))]
+  names(historicalClimateRasters) <- gsub(pattern = "historic_", replacement = "",
+                                          x = names(historicalClimateRasters))
+  projectedClimateRasters <- climateRasters[grep(pattern = "projected_", 
+                                                 x  = names(climateRasters))]
+  names(projectedClimateRasters) <- gsub(pattern = "projected_", replacement = "",
+                                         x = names(projectedClimateRasters))
 
   ## sample use historic layers for use with hindcasting
   if (P(sim)$projectedType == "hindcast") {
     ## use same (sampled) years for each climate variable!
-    rndsmp <- sample(x = seq(terra::nlyr(climateRasters$historic_MDC)),
+    rndsmp <- sample(x = seq(terra::nlyr(projectedClimateRasters[[1]])),
                      size = length(projected_yrs),
                      replace = TRUE)
-
-    climateRasters$projected_ATA <- climateRasters$projected_ATA[[rndsmp]]
-    terra::set.names(climateRasters$projected_ATA, paste0("year", projected_yrs))
-
-    climateRasters$projected_CMI <- climateRasters$projected_CMI[[rndsmp]]
-    terra::set.names(climateRasters$projected_CMI, paste0("year", projected_yrs))
-
-    climateRasters$projected_MDC <- climateRasters$projected_MDC[[rndsmp]]
-    terra::set.names(climateRasters$projected_MDC, paste0("year", projected_yrs))
+    projectedClimateRasters <- lapply(projectedClimateRasters, 
+                                      FUN = function(x, n_year = rndsmp, n_name = projected_yrs) {
+      x <- x[[nyear]]
+      terra::set.names(x, paste0("year", n_name))
+      return(x)
+    })
   }
-
   ## save rasters to disk with updated layers names
 
   ## TODO: parallelize this so it's faster? wrapping SpatRasters is [too] slow here?
-  climateRasters <- lapply(climateRasters, function(x) {
+  historicalClimateRasters <- lapply(historicalClimateRasters, function(x) {
+    terra::writeRaster(x, .suffix(terra::sources(x), "updated"), overwrite = TRUE)
+  })
+  projectedClimateRasters <- lapply(projectedClimateRasters, function(x) {
     terra::writeRaster(x, .suffix(terra::sources(x), "updated"), overwrite = TRUE)
   })
 
-  # climateRastersWrapped <- lapply(climateRasters, terra::wrap)
-  # climateRasters <- parallel::parLapply(cl, climateRastersWrapped, function(x) {
-  #   terra::writeRaster(x, .suffix(terra::sources(x), "updated"), overwrite = TRUE)
-  # })
-  # climateRasters <- lapply(climateRasters, terra::unwrap)
-
-  ## objects for fireSense and LandR.CS:
-  sim$historicalClimateRasters <- list(MDC = climateRasters$historic_MDC,
-                                       CMI_normal = climateRasters$historic_CMI_normal)
-  sim$projectedClimateRasters <- list(MDC = climateRasters$future_MDC,
-                                      ATA = climateRasters$future_ATA,
-                                      CMI = climateRasters$future_CMI)
+  sim$historicalClimateRasters <- historicalClimateRasters
+  sim$projectedClimateRasters <- projectedClimateRasters
 
   return(invisible(sim))
 }
@@ -326,6 +274,70 @@ Init <- function(sim) {
                                filename2 = NULL)
     writeRaster(sim$rasterToMatch, file.path(dPath, paste0(P(sim)$.studyAreaName, "_rtm.tif")),
                 datatype = "INT1U", overwrite = TRUE)
+  }
+  
+  if (!suppliedElsewhere("climateVariables", sim)) {
+    historic_prd <- P(sim)$historicalClimatePeriod
+    historic_yrs <- P(sim)$historicalClimateYears
+    projected_yrs <- P(sim)$projectedClimateYears
+    if (P(sim)$projectedType == "forecast") {
+      sim$climateVariables <- list(
+        historic_CMI_normal = list(
+          vars = "historic_CMI_normal",
+          fun = quote(calcCMInormal),
+          .dots = list(historic_period = historic_prd, historic_years = historic_yrs)
+        ),
+        historic_MDC = list(
+          vars = c(sprintf("historic_PPT%02d", 4:9), sprintf("historic_Tmax%02d", 4:9)),
+          fun = quote(calcMDC),
+          .dots = list(historic_years = historic_yrs)
+        ),
+        projected_ATA = list(
+          vars = c("future_MAT", "historic_MAT_normal"),
+          fun = quote(calcATA),
+          .dots = list(historic_period = historic_prd, future_years = projected_yrs)
+        ),
+        projected_CMI = list(
+          vars = "future_CMI",
+          fun = quote(calcAsIs),
+          .dots = list(future_years = projected_yrs)
+        ),
+        projected_MDC = list(
+          vars = c(sprintf("future_PPT%02d", 4:9), sprintf("future_Tmax%02d", 4:9)),
+          fun = quote(calcMDC),
+          .dots = list(future_years = projected_yrs)
+        )
+      )
+    } else if (P(sim)$projectedType == "hindcast") {
+      sim$climateVariables <- list(
+        historic_CMI_normal = list(
+          vars = "historic_CMI_normal",
+          fun = quote(calcCMInormal),
+          .dots = list(historic_period = historic_prd, historic_years = historic_yrs)
+        ),
+        historic_MDC = list(
+          vars = c(sprintf("historic_PPT%02d", 4:9), sprintf("historic_Tmax%02d", 4:9)),
+          fun = quote(calcMDC),
+          .dots = list(historic_years = historic_yrs)
+        ),
+        ## projected climate variables will be prepared from historic and sampled below
+        projected_ATA = list(
+          vars = c("historic_MAT", "historic_MAT_normal"),
+          fun = quote(calcATA),
+          .dots = list(historic_period = historic_prd, historic_years = historic_yrs)
+        ),
+        projected_CMI = list(
+          vars = "historic_CMI",
+          fun = quote(calcAsIs),
+          .dots = list(historic_years = historic_yrs)
+        ),
+        projected_MDC = list(
+          vars = c(sprintf("historic_PPT%02d", 4:9), sprintf("historic_Tmax%02d", 4:9)),
+          fun = quote(calcMDC),
+          .dots = list(historic_years = historic_yrs)
+        )
+      )
+    }
   }
 
   return(invisible(sim))
