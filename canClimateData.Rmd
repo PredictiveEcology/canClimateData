@@ -26,7 +26,7 @@ Require(c("knitr", "kableExtra",
 
 Prepare Canadian historic and projected climate data for use with LandR.CS and fireSense.
 
-Currently supports study areas in AB, BC, SK, MB, ON, QC, NT, and YT, for some CMIP6 climate scenarios (see below).
+Currently supports study areas across Canada, for some CMIP6 climate scenarios (see below).
 
 # Parameters
 
@@ -65,8 +65,8 @@ knitr::include_graphics(system.file("extdata/tile_map.png", package = "climateDa
 
 ```{r climateDataAvail, eval = TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 ## historic data
-available("historic")[["years"]]
-available("historic_normals")[["periods"]]
+available("historical")[["years"]]
+available("historical_normals")[["periods"]]
 
 ## future climate scenarios
 available("future")[["gcms"]]
