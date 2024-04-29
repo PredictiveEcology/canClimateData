@@ -19,7 +19,7 @@ defineModule(sim, list(
   documentation = deparse(list("README.md", "canClimateData.Rmd")),
   reqdPkgs = list("archive", "digest", "geodata", "googledrive", "purrr",
                   "R.utils", "sf", "spatialEco", "terra",
-                  "PredictiveEcology/climateData@main (>= 2.0.5)",
+                  "PredictiveEcology/climateData@main (>= 2.0.6)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9046)",
                   "PredictiveEcology/LandR@development (>= 1.1.0.9064)",
                   "PredictiveEcology/reproducible@modsForLargeArchives (>= 2.0.10.9018)", ## TODO: use development once merged
