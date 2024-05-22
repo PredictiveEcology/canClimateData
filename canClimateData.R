@@ -182,7 +182,8 @@ Init <- function(sim) {
     cl = NULL, ## TODO: allow user to pass their own cl object to module
     studyArea = sim$studyArea,
     studyAreaName = P(sim)$.studyAreaName,
-    rasterToMatch = sim$rasterToMatch
+    rasterToMatch = sim$rasterToMatch,
+    currentModuleName = "canClimateData"
   ) |>
     Cache(omitArgs = c("climatePath", "climatePathOut")) ## TODO: improve use of cache
 
