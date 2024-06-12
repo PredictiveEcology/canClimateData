@@ -12,7 +12,7 @@ defineModule(sim, list(
     person("Tati", "Micheletti", email = "tati.micheletti@gmail.com", role = "ctb")
   ),
   childModules = character(0),
-  version = list(canClimateData = "1.0.1"),
+  version = list(canClimateData = "1.0.2"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -33,8 +33,8 @@ defineModule(sim, list(
                           "currently 'CanESM5' or 'CNRM-ESM2-1'.")),
     defineParameter("climateSSP", "numeric", 370, NA, NA,
                     paste("SSP emissions scenario for `climateGCM`: one of 245, 370, or 585.")),
-    defineParameter("historicalClimatePeriod", "character", c("1951_1980", "1981_2010"), NA, NA, 
-                    "period to use for historical climate normals"), 
+    defineParameter("historicalClimatePeriod", "character", c("1951_1980", "1981_2010"), NA, NA,
+                    "period to use for historical climate normals"),
     defineParameter("historicalClimateYears", "numeric", 1991:2022, NA, NA,
                     paste("range of years captured by the historical climate data")),
     defineParameter("outputDir", "character", NA_character_, NA, NA,
@@ -44,7 +44,7 @@ defineModule(sim, list(
                           "to avoid multiple copies of the climate data.",
                           "If not specified by the user, a subdirectory of the simulation output",
                           "directory will be used (i.e., `file.path(outputPath(sim), 'climate')`.")),
-    defineParameter("projectedClimatePeriod", "character", NULL, NA, NA, 
+    defineParameter("projectedClimatePeriod", "character", NULL, NA, NA,
                     "period to use for projected climate normals"),
     defineParameter("projectedClimateYears", "numeric", 2011:2100, NA, NA,
                     paste("range of years captured by the projected climate data")),
@@ -72,15 +72,15 @@ defineModule(sim, list(
                           "and time are not relevant."))
   ),
   inputObjects = bindrows(
-    expectsInput("climateVariables", "list", 
+    expectsInput("climateVariables", "list",
                  paste("a list, named by climate variable using 'projected_' or 'historical_'",
                        "prefixes, with each list element containing a list of three arguments:",
                        "vars - the raw variables used to derive the target variable,",
-                       "fun - the quoted function used to derive the target variable, where", 
+                       "fun - the quoted function used to derive the target variable, where",
                        "'quote(calcAsIs)' denotes target variables that ARE the raw variable,",
                        "and dots - additional arguments passed to 'fun'. See the .inputObjects",
-                       "for examples of how to build this object and ?climateData::prepClimateLayers", 
-                       "for how it is used . The GCM, SSP, and selected years, whether projected or", 
+                       "for examples of how to build this object and ?climateData::prepClimateLayers",
+                       "for how it is used . The GCM, SSP, and selected years, whether projected or",
                        "historical, are set by module parameters and must be identical for all variables"),
                        sourceURL = NA),
     expectsInput("rasterToMatch", "SpatRaster",
@@ -196,18 +196,18 @@ Init <- function(sim) {
     terra::set.names(rstack, paste0(preFix, last4(names(rstack))))
     return(rstack)
   }
-  
+
   normals <- grep("normal", names(sim$climateVariables))
   climateRasters[normals] <- lapply(climateRasters[normals], fixNames, preFix = "period")
   annuals <- grep("normal", names(sim$climateVariables), invert = TRUE)
   climateRasters[annuals] <- lapply(climateRasters[annuals], fixNames, preFix = "year")
-  
-  
-  historicalClimateRasters <- climateRasters[grep(pattern = "historical_", 
+
+
+  historicalClimateRasters <- climateRasters[grep(pattern = "historical_",
                                                   x = names(climateRasters))]
   names(historicalClimateRasters) <- gsub(pattern = "historical_", replacement = "",
                                           x = names(historicalClimateRasters))
-  projectedClimateRasters <- climateRasters[grep(pattern = "projected_", 
+  projectedClimateRasters <- climateRasters[grep(pattern = "projected_",
                                                  x  = names(climateRasters))]
   names(projectedClimateRasters) <- gsub(pattern = "projected_", replacement = "",
                                          x = names(projectedClimateRasters))
@@ -218,11 +218,11 @@ Init <- function(sim) {
     rndsmp <- sample(x = seq(terra::nlyr(projectedClimateRasters[[1]])),
                      size = length(projected_yrs),
                      replace = TRUE)
-    projectedClimateRasters <- lapply(projectedClimateRasters, 
+    projectedClimateRasters <- lapply(projectedClimateRasters,
                                       FUN = function(x, n_year = rndsmp, n_name = projected_yrs) {
-      x <- x[[nyear]]
-      terra::set.names(x, paste0("year", n_name))
-      return(x)
+      z <- terra::subset(x, n_year)
+      terra::set.names(z, paste0("year", n_name))
+      return(z)
     })
   }
   ## save rasters to disk with updated layers names
@@ -276,7 +276,7 @@ Init <- function(sim) {
     writeRaster(sim$rasterToMatch, file.path(dPath, paste0(P(sim)$.studyAreaName, "_rtm.tif")),
                 datatype = "INT1U", overwrite = TRUE)
   }
-  
+
   if (!suppliedElsewhere("climateVariables", sim)) {
     historical_prd <- P(sim)$historicalClimatePeriod
     historical_yrs <- P(sim)$historicalClimateYears
