@@ -22,8 +22,8 @@ defineModule(sim, list(
                   "PredictiveEcology/climateData@main (>= 2.1.0)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9046)",
                   "PredictiveEcology/LandR@development (>= 1.1.0.9064)",
-                  "PredictiveEcology/reproducible@modsForLargeArchives (>= 2.0.10.9018)", ## TODO: use development once merged
-                  "PredictiveEcology/SpaDES.core@sequentialCaching (>= 2.0.3.9007)", ## TODO: use development once merged
+                  "PredictiveEcology/reproducible@development (>= 2.1.1.9002)", ##
+                  "PredictiveEcology/SpaDES.core@development (>= 2.1.5)",
                   "PredictiveEcology/SpaDES.tools@development (>= 2.0.4.9002)"),
   parameters = rbind(
     defineParameter("bufferDist", "numeric", 20000, NA, NA,
@@ -56,7 +56,7 @@ defineModule(sim, list(
                           "the slow process of digesting potentially MANY files.",
                           "This will use `file.size` only, if `TRUE`.")),
     defineParameter(".studyAreaName", "character", NA_character_, NA, NA,
-                    paste("User-defined label for the current stuyd area.",
+                    paste("User-defined label for the current study area.",
                           "If `NA`, a hash of `studyArea` will be used.")),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA,
                     "Describes the simulation time at which the first plot event should occur."),
