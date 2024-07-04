@@ -12,14 +12,14 @@ defineModule(sim, list(
     person("Tati", "Micheletti", email = "tati.micheletti@gmail.com", role = "ctb")
   ),
   childModules = character(0),
-  version = list(canClimateData = "1.0.2"),
+  version = list(canClimateData = "1.0.3"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = deparse(list("README.md", "canClimateData.Rmd")),
   reqdPkgs = list("archive", "digest", "geodata", "googledrive", "purrr",
                   "R.utils", "sf", "spatialEco", "terra",
-                  "PredictiveEcology/climateData@main (>= 2.1.0)",
+                  "PredictiveEcology/climateData@main (>= 2.2.2)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9046)",
                   "PredictiveEcology/LandR@development (>= 1.1.0.9064)",
                   "PredictiveEcology/reproducible@development (>= 2.1.1.9002)", ##
@@ -34,9 +34,11 @@ defineModule(sim, list(
     defineParameter("climateSSP", "numeric", 370, NA, NA,
                     paste("SSP emissions scenario for `climateGCM`: one of 245, 370, or 585.")),
     defineParameter("historicalClimatePeriod", "character", c("1951_1980", "1981_2010"), NA, NA,
-                    "period to use for historical climate normals"),
+                    paste("period to use for historical climate normals",
+                          "if `climateVariables` not supplied.")),
     defineParameter("historicalClimateYears", "numeric", 1991:2022, NA, NA,
-                    paste("range of years captured by the historical climate data")),
+                    paste("range of years captured by the historical climate data",
+                          "if `climateVariables` not supplied.")),
     defineParameter("outputDir", "character", NA_character_, NA, NA,
                     paste("Directory path for prepared climate data rasters.",
                           "User should specify a shared directory",
@@ -45,9 +47,11 @@ defineModule(sim, list(
                           "If not specified by the user, a subdirectory of the simulation output",
                           "directory will be used (i.e., `file.path(outputPath(sim), 'climate')`.")),
     defineParameter("projectedClimatePeriod", "character", NULL, NA, NA,
-                    "period to use for projected climate normals"),
+                    paste("period to use for projected climate normals",
+                          "if `climateVariables` not supplied.")),
     defineParameter("projectedClimateYears", "numeric", 2011:2100, NA, NA,
-                    paste("range of years captured by the projected climate data")),
+                    paste("range of years captured by the projected climate data",
+                          "if `climateVariables` not supplied.")),
     defineParameter("projectedType", "character", "forecast", NA, NA,
                     paste("one of 'forecast' or 'hindcast' to prepare either projected future,",
                           "or sampled historical data for hindcast studies, respectively.")),
@@ -161,11 +165,6 @@ Init <- function(sim) {
   stopifnot(getOption("reproducible.useNewDigestAlgorithm") == 2)
 
   ## PREPARE CLIMATE LAYERS
-  historical_prd <- P(sim)$historicalClimatePeriod
-  historical_yrs <- P(sim)$historicalClimateYears
-  projected_yrs <- P(sim)$projectedClimateYears
-  future_prd <- P(sim)$projectedClimatePeriod
-
   GCM <- P(sim)$climateGCM
   SSP <- P(sim)$climateSSP
 
@@ -173,10 +172,6 @@ Init <- function(sim) {
     climateVarsList = sim$climateVariables,
     srcdir = climatePath,    ## 'src' is the place for raw inputs, downloaded from Google Drive
     dstdir = climatePathOut, ## 'dst' is the place for intermediate + final outputs
-    historical_years = historical_yrs,
-    future_years = projected_yrs,
-    historical_period = historical_prd,
-    future_period =  future_prd,
     gcm = GCM,
     ssp = SSP,
     cl = NULL, ## TODO: allow user to pass their own cl object to module
@@ -281,6 +276,8 @@ Init <- function(sim) {
     historical_prd <- P(sim)$historicalClimatePeriod
     historical_yrs <- P(sim)$historicalClimateYears
     projected_yrs <- P(sim)$projectedClimateYears
+    projected_prd <- P(sim)$projectedClimatePeriod ## currently not used
+
     if (P(sim)$projectedType == "forecast") {
       sim$climateVariables <- list(
         historical_CMI_normal = list(
