@@ -27,7 +27,8 @@ defineModule(sim, list(
                   "PredictiveEcology/SpaDES.tools@development (>= 2.0.4.9002)"),
   parameters = rbind(
     defineParameter("bufferDist", "numeric", 20000, NA, NA,
-                    "Distance (m) to buffer `studyArea` and `rasterToMatch`."),
+                    paste("Distance (m) to buffer `studyArea` and `rasterToMatch`",
+                          "to mitigate edge effects for simulation.")),
     defineParameter("climateGCM", "character", "CNRM-ESM2-1", NA, NA,
                     paste("Global Circulation Model to use for climate projections:",
                           "currently 'CanESM5' or 'CNRM-ESM2-1'.")),
