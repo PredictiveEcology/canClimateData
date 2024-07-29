@@ -42,7 +42,7 @@ dir.create("figures", showWarnings = FALSE)
 
 download.file(url = "https://img.shields.io/badge/Made%20with-Markdown-1f425f.png",
               destfile = "figures/markdownBadge.png",
-              mode = 'wb')
+              mode = "wb")
 ```
 
 [![made-with-Markdown](figures/markdownBadge.png)](http://commonmark.org)
@@ -62,7 +62,7 @@ download.file(url = "https://img.shields.io/badge/Made%20with-Markdown-1f425f.pn
 
 Prepare Canadian historic and projected climate data for use with `LandR.CS` and `fireSense.`
 
-Historical and projected climate data were generated using the [`climateData`](https://github.com/PredictiveEcology/climateData) package, which provides wrappers for calling [ClimateNA](https://climatena.ca) to generate the climate data on a local machine.
+Historical and projected climate data were generated using the [`climateData`](https://github.com/PredictiveEcology/climateData) package, which provides wrappers for calling [ClimateNA](https://climatena.ca) [@Wang2016] to generate the climate data on a local machine.
 These datasets were then archived and uploaded to Google Drive, and an SQLite database (shipped with the package) is used to record which datasets are available, and how to retrieve them.
 
 Currently supports study areas across Canada, for some CMIP6 climate scenarios (see below).
@@ -83,7 +83,14 @@ available("future")[["gcms"]]
 available("future")[["ssps"]]
 ```
 
-Additional data sets will be added in the future.
+Additional data sets will be added in the future, although users can prepare other scenarios not included here using the scripts in the [`climateData`](https://github.com/PredictiveEcology/climateData) package.
+
+See the following for climate scenario exploration / comparison:
+
+- Climate projections for ecologists [@Harris2014];
+- <https://ecoinformatica.net/GCMcompareR.html> [@Fajardo2020];
+- <https://bcgov-env.shinyapps.io/cmip6-NA/> [@Mahony2022];
+- <https://gcmeval.met.no/> [@Parding2020].
 
 ### Module inputs and parameters
 
@@ -132,3 +139,5 @@ Originally developed to provide inputs to [`gmcsDataPrep`](https://github.com/ia
 ### Getting help
 
 <https://github.com/PredictiveEcology/canClimateData/issues>
+
+## References

@@ -1,7 +1,7 @@
 ---
 title: "canClimateData Manual"
 subtitle: "v.1.0.3"
-date: "Last updated: 2024-07-04"
+date: "Last updated: 2024-07-29"
 output:
   bookdown::html_document2:
     toc: true
@@ -40,14 +40,14 @@ Ian Eddy <ian.eddy@nrcan-rncan.gc.ca> [aut], Alex M Chubaty <achubaty@for-cast.c
 
 Prepare Canadian historic and projected climate data for use with `LandR.CS` and `fireSense.`
 
-Historical and projected climate data were generated using the [`climateData`](https://github.com/PredictiveEcology/climateData) package, which provides wrappers for calling [ClimateNA](https://climatena.ca) to generate the climate data on a local machine.
+Historical and projected climate data were generated using the [`climateData`](https://github.com/PredictiveEcology/climateData) package, which provides wrappers for calling [ClimateNA](https://climatena.ca) [@Wang2016] to generate the climate data on a local machine.
 These datasets were then archived and uploaded to Google Drive, and an SQLite database (shipped with the package) is used to record which datasets are available, and how to retrieve them.
 
 Currently supports study areas across Canada, for some CMIP6 climate scenarios (see below).
 
 **Available data sets:**
 
-<img src="../../../../../../../../mnt/shared_cache/renv/cache/v5/R-4.3/x86_64-pc-linux-gnu/climateData/2.2.1/be4e1197d00d03ddb206d4f7c44b471d/climateData/extdata/tile_map.png" width="852" />
+<img src="../../../../../../../../mnt/shared_cache/renv/cache/v5/R-4.3/x86_64-pc-linux-gnu/climateData/2.2.2/ce96a12a057e6449fa6bdc7af8ec6758/climateData/extdata/tile_map.png" width="852" />
 
 
 ``` r
@@ -93,7 +93,14 @@ available("future")[["ssps"]]
 ## [1] "245" "370" "585"
 ```
 
-Additional data sets will be added in the future.
+Additional data sets will be added in the future, although users can prepare other scenarios not included here using the scripts in the [`climateData`](https://github.com/PredictiveEcology/climateData) package.
+
+See the following for climate scenario exploration / comparison:
+
+- Climate projections for ecologists [@Harris2014];
+- <https://ecoinformatica.net/GCMcompareR.html> [@Fajardo2020];
+- <https://bcgov-env.shinyapps.io/cmip6-NA/> [@Mahony2022];
+- <https://gcmeval.met.no/> [@Parding2020].
 
 ### Module inputs and parameters
 
@@ -322,3 +329,5 @@ Originally developed to provide inputs to [`gmcsDataPrep`](https://github.com/ia
 ### Getting help
 
 <https://github.com/PredictiveEcology/canClimateData/issues>
+
+## References
