@@ -55,7 +55,7 @@ jobs:
 
       - name: Install module package and other dependencies
         run: |
-          pkgs <- SpaDES.core::packages(modules = "canClimateData", paths = "..")[[1]]
+          pkgs <- SpaDES.core::packages(modules = "canClimateData", paths = "..")
           Require::Require(pkgs[[1]], require = FALSE)
         shell: Rscript {0}
 
