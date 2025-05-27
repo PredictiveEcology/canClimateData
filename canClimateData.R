@@ -12,7 +12,7 @@ defineModule(sim, list(
     person("Tati", "Micheletti", email = "tati.micheletti@gmail.com", role = "ctb")
   ),
   childModules = character(0),
-  version = list(canClimateData = "1.0.3"),
+  version = list(canClimateData = "1.0.4"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -163,6 +163,7 @@ Init <- function(sim) {
 
   digestSA_RTM <- .robustDigest(list(sim.studyArea = sim$studyArea,
                                      sim.rasterToMatch = sim$rasterToMatch))
+  # This was removed May 2025; seemed to have no use
   # sim$studyArea$studyAreaName <- paste0(P(sim)$.studyAreaName, collapse = "_") ## makes it a data.frame
 
   stopifnot(getOption("reproducible.useNewDigestAlgorithm") == 2)
