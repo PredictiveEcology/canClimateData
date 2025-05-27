@@ -95,6 +95,8 @@ defineModule(sim, list(
                  sourceURL = NA)
   ),
   outputObjects = bindrows(
+    createsOutput("studyArea", "sf",
+                 desc = "adds a column, studyAreaName"),
     createsOutput("historicalClimateRasters", "list",
                   desc = "list of a single raster stack - historical MDC calculated from ClimateNA data"),
     createsOutput("projectedClimateRasters", "list",
