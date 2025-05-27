@@ -163,7 +163,7 @@ Init <- function(sim) {
 
   digestSA_RTM <- .robustDigest(list(sim.studyArea = sim$studyArea,
                                      sim.rasterToMatch = sim$rasterToMatch))
-  sim$studyArea$studyAreaName <- paste0(P(sim)$.studyAreaName, collapse = "_") ## makes it a data.frame
+  # sim$studyArea$studyAreaName <- paste0(P(sim)$.studyAreaName, collapse = "_") ## makes it a data.frame
 
   stopifnot(getOption("reproducible.useNewDigestAlgorithm") == 2)
 
