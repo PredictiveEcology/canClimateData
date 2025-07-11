@@ -2,7 +2,8 @@ defineModule(sim, list(
   name = "canClimateData",
   description = paste(
     "Prepares projected and historical climate data for fitting and predicting fires,",
-    "and calculating climate effects on forest growth and mortality."
+    "and calculating climate effects on forest growth and mortality. See ",
+    "https://climatena.ca/Help2#_var for list of available variables."
   ),
   keywords = "",
   authors = c(
