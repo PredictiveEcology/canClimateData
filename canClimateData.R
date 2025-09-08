@@ -2,7 +2,8 @@ defineModule(sim, list(
   name = "canClimateData",
   description = paste(
     "Prepares projected and historical climate data for fitting and predicting fires,",
-    "and calculating climate effects on forest growth and mortality."
+    "and calculating climate effects on forest growth and mortality. See ",
+    "https://climatena.ca/Help2#_var for list of available variables."
   ),
   keywords = "",
   authors = c(
@@ -97,6 +98,8 @@ defineModule(sim, list(
                  sourceURL = NA)
   ),
   outputObjects = bindrows(
+    # createsOutput("studyArea", "sf",
+    #              desc = "adds a column, studyAreaName"),
     createsOutput("historicalClimateRasters", "list",
                   desc = "list of a single raster stack - historical MDC calculated from ClimateNA data"),
     createsOutput("projectedClimateRasters", "list",
@@ -184,7 +187,7 @@ Init <- function(sim) {
     rasterToMatch = sim$rasterToMatch,
     currentModuleName = "canClimateData"
   ) |>
-    Cache(omitArgs = c("climatePath", "climatePathOut")) ## TODO: improve use of cache
+    Cache(omitArgs = c("climatePath", "climatePathOut"), useCloud = Par$.useCloud) ## TODO: improve use of cache
 
   ## rename list elements and layers to match expected names downstream
   names(climateRasters) <- names(sim$climateVariables)
