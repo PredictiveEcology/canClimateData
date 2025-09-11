@@ -135,6 +135,7 @@ Init <- function(sim) {
 
   ## separate intermediate outputs from raw inputs, to reduce file conflicts on shared drives
   climatePath <- file.path(inputPath(sim), "climate") |> checkPath(create = TRUE) |> asPath(1)
+  # climatePath <- file.path(inputPath(sim), "climate", Par$.studyAreaName) |> checkPath(create = TRUE) |> asPath(1)
   climatePathOut <- if (is.null(P(sim)$outputDir) || is.na(P(sim)$outputDir)) {
     file.path(outputPath(sim), "climate") |> checkPath(create = TRUE) |> asPath(1)
   } else {
