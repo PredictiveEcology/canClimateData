@@ -231,10 +231,10 @@ Init <- function(sim) {
   ## TODO: parallelize this so it's faster? wrapping SpatRasters is [too] slow here?
   historicalClimateRasters <- lapply(historicalClimateRasters, function(x) {
     terra::writeRaster(x, .suffix(terra::sources(x), "updated"), overwrite = TRUE)
-  })
+  }) |> Cache()
   projectedClimateRasters <- lapply(projectedClimateRasters, function(x) {
     terra::writeRaster(x, .suffix(terra::sources(x), "updated"), overwrite = TRUE)
-  })
+  }) |> Cache()
 
   sim$historicalClimateRasters <- historicalClimateRasters
   sim$projectedClimateRasters <- projectedClimateRasters
