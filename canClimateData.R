@@ -20,6 +20,7 @@ defineModule(sim, list(
   documentation = deparse(list("README.md", "canClimateData.Rmd")),
   reqdPkgs = list("archive", "digest", "geodata", "googledrive", "purrr",
                   "R.utils", "sf", "spatialEco", "terra",
+                  "dbplyr", # needed for prepClimateLayers
                   "PredictiveEcology/climateData@modsDuringFireSense (>= 2.2.2.9002)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9046)",
                   "PredictiveEcology/LandR@development (>= 1.1.0.9064)",
