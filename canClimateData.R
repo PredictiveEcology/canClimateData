@@ -190,16 +190,19 @@ Init <- function(sim) {
   names(climateRasters) <- names(sim$climateVariables)
 
   #rename normals with period prefix and annuals with year prefix
-  last4 <- function(x) substr(x, nchar(x) - 3, nchar(x))
-  fixNames <- function(rstack, preFix){
-    terra::set.names(rstack, paste0(preFix, last4(names(rstack))))
+  #3 for annual, 8? for normal
+  last4 <- function(x, nCharByVar = 3) substr(x, nchar(x) - nCharByVar, nchar(x))
+  fixNames <- function(rstack, preFix, nCharByVar){
+    terra::set.names(rstack, paste0(preFix, last4(names(rstack), nCharByVar)))
     return(rstack)
   }
 
   normals <- grep("normal", names(sim$climateVariables))
-  climateRasters[normals] <- lapply(climateRasters[normals], fixNames, preFix = "period")
+  climateRasters[normals] <- lapply(climateRasters[normals], 
+                                    fixNames, preFix = "period", nCharByVar = 8)
   annuals <- grep("normal", names(sim$climateVariables), invert = TRUE)
-  climateRasters[annuals] <- lapply(climateRasters[annuals], fixNames, preFix = "year")
+  climateRasters[annuals] <- lapply(climateRasters[annuals], 
+                                    fixNames, preFix = "year", nCharByVar = 3)
 
 
   historicalClimateRasters <- climateRasters[grep(pattern = "historical_",
