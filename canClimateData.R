@@ -2,8 +2,7 @@ defineModule(sim, list(
   name = "canClimateData",
   description = paste(
     "Prepares projected and historical climate data for fitting and predicting fires,",
-    "and calculating climate effects on forest growth and mortality. See ",
-    "https://climatena.ca/Help2#_var for list of available variables."
+    "and calculating climate effects on forest growth and mortality."
   ),
   keywords = "",
   authors = c(
@@ -24,7 +23,7 @@ defineModule(sim, list(
                   "PredictiveEcology/climateData@modsDuringFireSense3 (>= 2.2.2.9004)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9046)",
                   "PredictiveEcology/LandR@development (>= 1.1.0.9064)",
-                  "PredictiveEcology/reproducible@development (>= 2.1.1.9002)", ##
+                  "PredictiveEcology/reproducible@development (>= 2.1.1.9002)",
                   "PredictiveEcology/SpaDES.core@development (>= 2.1.5)",
                   "PredictiveEcology/SpaDES.tools@development (>= 2.0.4.9002)"),
   parameters = rbind(
@@ -80,15 +79,17 @@ defineModule(sim, list(
   ),
   inputObjects = bindrows(
     expectsInput("climateVariables", "list",
-                 paste("a list, named by climate variable using 'projected_' or 'historical_'",
+                 paste("a list, named by climate variable using `'projected_'` or `'historical_'`",
                        "prefixes, with each list element containing a list of three arguments:",
-                       "vars - the raw variables used to derive the target variable,",
-                       "fun - the quoted function used to derive the target variable, where",
-                       "'quote(calcAsIs)' denotes target variables that ARE the raw variable,",
-                       "and dots - additional arguments passed to 'fun'. See the .inputObjects",
-                       "for examples of how to build this object and ?climateData::prepClimateLayers",
-                       "for how it is used . The GCM, SSP, and selected years, whether projected or",
-                       "historical, are set by module parameters and must be identical for all variables"),
+                       "`vars` - the raw variables used to derive the target variable;",
+                       "`fun` - the quoted function used to derive the target variable, where",
+                       "`'quote(calcAsIs)'` denotes target variables that ARE the raw variable;",
+                       "and `dots` - additional arguments passed to `fun`.",
+                       "See `.inputObjects` for examples of how to build this object,",
+                       "and `?climateData::prepClimateLayers` for how it is used.",
+                       "The GCM, SSP, and selected years, whether projected or historical,",
+                       "are set by module parameters and must be identical for all variables.",
+                       "See also <https://climatena.ca/Help2#_var> for all available climate variables."),
                        sourceURL = NA),
     expectsInput("rasterToMatch", "SpatRaster",
                  desc = "template raster corresponding to `studyArea`.", sourceURL = NA),
@@ -97,8 +98,6 @@ defineModule(sim, list(
                  sourceURL = NA)
   ),
   outputObjects = bindrows(
-    # createsOutput("studyArea", "sf",
-    #              desc = "adds a column, studyAreaName"),
     createsOutput("historicalClimateRasters", "list",
                   desc = "list of a single raster stack - historical MDC calculated from ClimateNA data"),
     createsOutput("projectedClimateRasters", "list",
@@ -193,16 +192,19 @@ Init <- function(sim) {
   names(climateRasters) <- names(sim$climateVariables)
 
   #rename normals with period prefix and annuals with year prefix
-  last4 <- function(x) substr(x, nchar(x) - 3, nchar(x))
-  fixNames <- function(rstack, preFix){
-    terra::set.names(rstack, paste0(preFix, last4(names(rstack))))
+  #3 for annual, 8? for normal
+  last4 <- function(x, nCharByVar = 3) substr(x, nchar(x) - nCharByVar, nchar(x))
+  fixNames <- function(rstack, preFix, nCharByVar){
+    terra::set.names(rstack, paste0(preFix, last4(names(rstack), nCharByVar)))
     return(rstack)
   }
 
   normals <- grep("normal", names(sim$climateVariables))
-  climateRasters[normals] <- lapply(climateRasters[normals], fixNames, preFix = "period")
+  climateRasters[normals] <- lapply(climateRasters[normals], 
+                                    fixNames, preFix = "period", nCharByVar = 8)
   annuals <- grep("normal", names(sim$climateVariables), invert = TRUE)
-  climateRasters[annuals] <- lapply(climateRasters[annuals], fixNames, preFix = "year")
+  climateRasters[annuals] <- lapply(climateRasters[annuals], 
+                                    fixNames, preFix = "year", nCharByVar = 3)
 
 
   historicalClimateRasters <- climateRasters[grep(pattern = "historical_",
