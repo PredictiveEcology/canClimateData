@@ -20,7 +20,7 @@ defineModule(sim, list(
   reqdPkgs = list("archive", "digest", "geodata", "googledrive", "purrr",
                   "R.utils", "sf", "spatialEco", "terra",
                   "dbplyr", # needed for prepClimateLayers
-                  "PredictiveEcology/climateData@modsDuringFireSense3 (>= 2.2.2.9004)",
+                  "PredictiveEcology/climateData@development (>= 2.2.3)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9046)",
                   "PredictiveEcology/LandR@development (>= 1.1.0.9064)",
                   "PredictiveEcology/reproducible@development (>= 2.1.1.9002)",
@@ -291,23 +291,13 @@ Init <- function(sim) {
       sim$climateVariables <- list(
         historical_CMI_normal = list(
           vars = "historical_CMI_normal",
-          fun = quote(calcCMInormal),
-          .dots = list(historical_period = historical_prd, historical_years = historical_yrs)
+          fun = quote(calcAsIs),
+          .dots = list(historical_period = historical_prd)
         ),
         historical_MDC = list(
           vars = c(sprintf("historical_PPT%02d", 4:9), sprintf("historical_Tmax%02d", 4:9)),
           fun = quote(calcMDC),
           .dots = list(historical_years = historical_yrs)
-        ),
-        projected_ATA = list(
-          vars = c("future_MAT", "historical_MAT_normal"),
-          fun = quote(calcATA),
-          .dots = list(historical_period = historical_prd, future_years = projected_yrs)
-        ),
-        projected_CMI = list(
-          vars = "future_CMI",
-          fun = quote(calcAsIs),
-          .dots = list(future_years = projected_yrs)
         ),
         projected_MDC = list(
           vars = c(sprintf("future_PPT%02d", 4:9), sprintf("future_Tmax%02d", 4:9)),
@@ -319,8 +309,8 @@ Init <- function(sim) {
       sim$climateVariables <- list(
         historical_CMI_normal = list(
           vars = "historical_CMI_normal",
-          fun = quote(calcCMInormal),
-          .dots = list(historical_period = historical_prd, historical_years = historical_yrs)
+          fun = quote(calcAsIs),
+          .dots = list(historical_period = historical_prd)
         ),
         historical_MDC = list(
           vars = c(sprintf("historical_PPT%02d", 4:9), sprintf("historical_Tmax%02d", 4:9)),
@@ -328,11 +318,6 @@ Init <- function(sim) {
           .dots = list(historical_years = historical_yrs)
         ),
         ## projected climate variables will be prepared from historical and sampled below
-        projected_ATA = list(
-          vars = c("historical_MAT", "historical_MAT_normal"),
-          fun = quote(calcATA),
-          .dots = list(historical_period = historical_prd, historical_years = historical_yrs)
-        ),
         projected_CMI = list(
           vars = "historical_CMI",
           fun = quote(calcAsIs),
