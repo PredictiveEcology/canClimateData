@@ -19,7 +19,8 @@ defineModule(sim, list(
   documentation = deparse(list("README.md", "canClimateData.Rmd")),
   reqdPkgs = list("archive", "digest", "geodata", "googledrive", "purrr",
                   "R.utils", "sf", "spatialEco", "terra",
-                  "PredictiveEcology/climateData@development (>= 2.2.2)",
+                  "dbplyr", # needed for prepClimateLayers
+                  "PredictiveEcology/climateData@modsDuringFireSense3 (>= 2.2.2.9004)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9046)",
                   "PredictiveEcology/LandR@development (>= 1.1.0.9064)",
                   "PredictiveEcology/reproducible@development (>= 2.1.1.9002)",
@@ -134,6 +135,7 @@ Init <- function(sim) {
 
   ## separate intermediate outputs from raw inputs, to reduce file conflicts on shared drives
   climatePath <- file.path(inputPath(sim), "climate") |> checkPath(create = TRUE) |> asPath(1)
+  # climatePath <- file.path(inputPath(sim), "climate", Par$.studyAreaName) |> checkPath(create = TRUE) |> asPath(1)
   climatePathOut <- if (is.null(P(sim)$outputDir) || is.na(P(sim)$outputDir)) {
     file.path(outputPath(sim), "climate") |> checkPath(create = TRUE) |> asPath(1)
   } else {
@@ -232,10 +234,10 @@ Init <- function(sim) {
   ## TODO: parallelize this so it's faster? wrapping SpatRasters is [too] slow here?
   historicalClimateRasters <- lapply(historicalClimateRasters, function(x) {
     terra::writeRaster(x, .suffix(terra::sources(x), "updated"), overwrite = TRUE)
-  })
+  }) |> Cache()
   projectedClimateRasters <- lapply(projectedClimateRasters, function(x) {
     terra::writeRaster(x, .suffix(terra::sources(x), "updated"), overwrite = TRUE)
-  })
+  }) |> Cache()
 
   sim$historicalClimateRasters <- historicalClimateRasters
   sim$projectedClimateRasters <- projectedClimateRasters
