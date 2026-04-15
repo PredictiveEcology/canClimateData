@@ -20,7 +20,7 @@ defineModule(sim, list(
   reqdPkgs = list("archive", "digest", "geodata", "googledrive", "purrr",
                   "R.utils", "sf", "spatialEco", "terra",
                   "dbplyr", # needed for prepClimateLayers
-                  "PredictiveEcology/climateData@modsDuringFireSense3 (>= 2.2.2.9004)",
+                  "PredictiveEcology/climateData@modsDuringFireSense3 (>= 2.2.2.9007)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9046)",
                   "PredictiveEcology/LandR@development (>= 1.1.0.9064)",
                   "PredictiveEcology/reproducible@development (>= 2.1.1.9002)",
