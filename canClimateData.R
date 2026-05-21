@@ -275,7 +275,7 @@ Init <- function(sim) {
                                year = 2005,
                                studyArea = sim$studyArea,
                                destinationPath = dPath,
-                               useCache = P(sim)$.useCache,
+                               useCache = ".inputObjects" %in% P(sim)$.useCache,
                                filename2 = NULL)
     writeRaster(sim$rasterToMatch, file.path(dPath, paste0(P(sim)$.studyAreaName, "_rtm.tif")),
                 datatype = "INT1U", overwrite = TRUE)
