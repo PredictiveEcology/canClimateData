@@ -12,7 +12,7 @@ defineModule(sim, list(
     person("Tati", "Micheletti", email = "tati.micheletti@gmail.com", role = "ctb")
   ),
   childModules = character(0),
-  version = list(canClimateData = "1.0.4"),
+  version = list(canClimateData = "1.0.4.9001"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -130,6 +130,17 @@ doEvent.canClimateData = function(sim, eventTime, eventType) {
 
 ## event functions ----------------------------------------------------------------------------
 
+## Which of "historical"/"projected" climate raster stacks need to be rewritten to disk
+## with their updated layer names before caching. `historicalClimateRasters` is never
+## subset, so it never needs rewriting: `reproducible::Cache()` already restores a
+## file-backed SpatRaster's layer names from its cache tags. `projectedClimateRasters`
+## needs rewriting only under hindcast, where it is subset with replacement (repeated,
+## out-of-order layers) and `Cache()` cannot reliably restore that on its own when the
+## layer count is unchanged.
+climateRastersToRewrite <- function(projectedType) {
+  if (identical(projectedType, "hindcast")) "projected" else character(0)
+}
+
 Init <- function(sim) {
   stopifnot(P(sim)$projectedType %in% c("forecast", "hindcast"))
 
@@ -229,15 +240,13 @@ Init <- function(sim) {
       return(z)
     })
   }
-  ## save rasters to disk with updated layers names
-
-  ## TODO: parallelize this so it's faster? wrapping SpatRasters is [too] slow here?
-  historicalClimateRasters <- lapply(historicalClimateRasters, function(x) {
-    terra::writeRaster(x, .suffix(terra::sources(x), "updated"), overwrite = TRUE)
-  }) |> Cache()
-  projectedClimateRasters <- lapply(projectedClimateRasters, function(x) {
-    terra::writeRaster(x, .suffix(terra::sources(x), "updated"), overwrite = TRUE)
-  }) |> Cache()
+  ## save updated layer names to disk only where `Cache()` cannot reliably restore them
+  ## on its own; see `climateRastersToRewrite()` above for why.
+  if ("projected" %in% climateRastersToRewrite(P(sim)$projectedType)) {
+    projectedClimateRasters <- lapply(projectedClimateRasters, function(x) {
+      terra::writeRaster(x, .suffix(terra::sources(x), "updated"), overwrite = TRUE)
+    }) |> Cache()
+  }
 
   sim$historicalClimateRasters <- historicalClimateRasters
   sim$projectedClimateRasters <- projectedClimateRasters
