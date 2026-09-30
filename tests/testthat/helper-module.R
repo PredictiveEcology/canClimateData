@@ -14,13 +14,14 @@ Cache <- reproducible::Cache
 
 ## Run the module's real Init() on small file-backed rasters, with stand-ins for the SpaDES accessors
 ## and for climateData::prepClimateLayers(). The stand-in layer names end in the year or period, as
-## climateData's do; Init() only uses that ending. `calls` counts calls to prepClimateLayers().
-runInit <- function(path, projectedType = "forecast", calls = new.env()) {
+## climateData's do; Init() only uses that ending. `params` overrides module parameters, and
+## `calls` counts calls to prepClimateLayers().
+runInit <- function(path, projectedType = "forecast", params = list(), calls = new.env()) {
   calls$n <- 0L
   sim <- new.env()
-  sim$params <- list(projectedType = projectedType, outputDir = NA_character_,
-                     .studyAreaName = "testSA", climateGCM = "CNRM-ESM2-1", climateSSP = 370,
-                     projectedClimateYears = 2011:2012)
+  sim$params <- modifyList(list(projectedType = projectedType, outputDir = NA_character_,
+                                .studyAreaName = "testSA", climateGCM = "CNRM-ESM2-1",
+                                climateSSP = 370, projectedClimateYears = 2011:2012), params)
   sim$climateVariables <- list(historical_CMI_normal = list(), historical_MDC = list(),
                                projected_MDC = list())
 
