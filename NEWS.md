@@ -3,7 +3,9 @@
 - Fixed: with `options(reproducible.useCache = FALSE)`, `Init()` again writes
   `historicalClimateRasters` and `projectedClimateRasters` to new files with the renamed layers.
   The previous change relied on `Cache()` to restore layer names, which does nothing when caching
-  is off, so the files on disk kept the old names. Version 1.0.4.9002.
+  is off, so the files on disk kept the old names. Multi-layer stacks are rewritten band-interleaved
+  in 256 x 256 tiles, as `climateData::prepClimateLayers()` writes them, so one year's layer can be
+  read without decompressing the others. Version 1.0.4.9002.
 - Fixed: `Init()` (canClimateData.R) rewrote both `historicalClimateRasters` and
   `projectedClimateRasters` to disk after renaming their layers, even though
   `historicalClimateRasters` is never subset and the renamed, in-memory stack is already

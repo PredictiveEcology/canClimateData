@@ -36,6 +36,26 @@ test_that("writeUpdatedLayerNames() writes the renamed layers to disk", {
   expect_equal(terra::values(out$MDC), terra::values(r))
 })
 
+test_that("writeUpdatedLayerNames() writes multi-layer stacks band-interleaved and tiled", {
+  ## the input is pixel-interleaved (GDAL's default); the rewrite must not keep that layout
+  f <- withr::local_tempfile(fileext = ".tif")
+  terra::writeRaster(terra::rast(nrows = 300, ncols = 300, nlyrs = 3, vals = seq_len(3 * 300^2)),
+                     f, overwrite = TRUE)
+  expect_true(any(grepl("INTERLEAVE=PIXEL", terra::describe(f))))
+  f1 <- withr::local_tempfile(fileext = ".tif")
+  terra::writeRaster(terra::rast(nrows = 300, ncols = 300, vals = seq_len(300^2)), f1, overwrite = TRUE)
+
+  out <- writeUpdatedLayerNames(list(MDC = terra::rast(f), CMI = terra::rast(f1)))
+  withr::defer(unlink(c(terra::sources(out$MDC), terra::sources(out$CMI))))
+
+  info <- terra::describe(terra::sources(out$MDC))
+  expect_true(any(grepl("INTERLEAVE=BAND", info)))
+  expect_true(any(grepl("Block=256x256", info)))
+  expect_equal(terra::values(out$MDC), terra::values(terra::rast(f)), tolerance = 0)
+  ## a single layer is written with GDAL's defaults, as climateData writes it
+  expect_equal(terra::values(out$CMI), terra::values(terra::rast(f1)), tolerance = 0)
+})
+
 test_that("Cache() restores a renamed file-backed raster's layer names without any rewrite", {
   tmpCache <- file.path(tempdir(), paste0("climateRasterRewriteCacheTest_", .Platform$OS.type))
   dir.create(tmpCache, showWarnings = FALSE)
