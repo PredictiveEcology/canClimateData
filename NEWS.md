@@ -2,6 +2,12 @@
 
 - Floors raised to climateData >= 2.2.3.9008 (cells whose 12 monthly PPT values are all 0 become NA) and reproducible >= 3.2.1.9060 (`postProcessTo()` no longer forces `terraOptions(memfrac = 0)`, which smoothed every climate layer). The `init` event's cache key includes reqdPkgs, so cached climate layers built before these fixes are rebuilt once instead of being restored.
 
+- Fixed: with `options(reproducible.useCache = FALSE)`, `Init()` again writes
+  `historicalClimateRasters` and `projectedClimateRasters` to new files with the renamed layers.
+  The previous change relied on `Cache()` to restore layer names, which does nothing when caching
+  is off, so the files on disk kept the old names. Multi-layer stacks are rewritten band-interleaved
+  in 256 x 256 tiles, as `climateData::prepClimateLayers()` writes them, so one year's layer can be
+  read without decompressing the others. Version 1.0.4.9002.
 - Fixed: `Init()` (canClimateData.R) rewrote both `historicalClimateRasters` and
   `projectedClimateRasters` to disk after renaming their layers, even though
   `historicalClimateRasters` is never subset and the renamed, in-memory stack is already
