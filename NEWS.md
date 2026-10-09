@@ -1,3 +1,7 @@
+# canClimateData (development version)
+
+- `projectedClimateYears` now defaults to 2017:2100 instead of 2011:2100. The projected archive for tile 39 (CNRM-ESM2-1 ssp370) has no 2013-2016 files, and observed climate now covers 1901-2024, so projections before 2017 are not needed.
+
 # canClimateData 1.1.0
 
 canClimateData now uses the current climateData package to prepare its climate layers. It can run hindcasts as well as forecasts, it returns historical and projected climate as named lists, and a shared output folder can be set for climate files. The manual was updated, with links for exploring and comparing climate scenarios.
