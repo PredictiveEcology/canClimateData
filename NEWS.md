@@ -17,3 +17,6 @@ The module no longer writes a second copy of every climate layer to disk. That c
   ELF). The rewrite is now kept only for `projectedClimateRasters` under hindcast, where
   `terra::subset()` samples layers with replacement and out of order, which `Cache()`
   cannot reliably restore on its own when the layer count is unchanged. Version 1.0.4.9001.
+- Fixed: `projectedType = "hindcast"` failed in `Init()` with "object 'projected_yrs' not found",
+  because `projected_yrs` was only defined inside `.inputObjects()`. Hindcast layers are now
+  sampled and named using `P(sim)$projectedClimateYears`.
