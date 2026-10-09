@@ -1,3 +1,9 @@
+# canClimateData 1.1.0
+
+canClimateData now uses the current climateData package to prepare its climate layers. It can run hindcasts as well as forecasts, it returns historical and projected climate as named lists, and a shared output folder can be set for climate files. The manual was updated, with links for exploring and comparing climate scenarios.
+
+The module no longer writes a second copy of every climate layer to disk. That copy took roughly 2.3 GB per climate variable per study area. Climate normals now have the right layer names, and hindcasts sample historical years correctly. The minimum versions of climateData and reproducible were raised to pick up fixes to monthly precipitation and to layer smoothing. Climate layers cached by earlier versions are rebuilt once.
+
 # canClimateData 1.0.4.9002
 
 - Floors raised to climateData >= 2.2.3.9008 (cells whose 12 monthly PPT values are all 0 become NA) and reproducible >= 3.2.1.9060 (`postProcessTo()` no longer forces `terraOptions(memfrac = 0)`, which smoothed every climate layer). The `init` event's cache key includes reqdPkgs, so cached climate layers built before these fixes are rebuilt once instead of being restored.
