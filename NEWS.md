@@ -1,3 +1,7 @@
+# canClimateData (development version)
+
+- `init` now stops, before preparing any climate data, when the run's start is not a calendar year from 1901 to 2100 (for example the model years 0-10 that `setupProject()` gives without `times`). The message says to set `times`, e.g. `times = list(start = 2020, end = 2120)`. The run may end after 2100.
+
 # canClimateData 1.1.0
 
 canClimateData now uses the current climateData package to prepare its climate layers. It can run hindcasts as well as forecasts, it returns historical and projected climate as named lists, and a shared output folder can be set for climate files. The manual was updated, with links for exploring and comparing climate scenarios.
