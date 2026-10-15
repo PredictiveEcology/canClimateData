@@ -1,6 +1,7 @@
 # canClimateData (development version)
 
 - `projectedClimateYears` now defaults to 2017:2100 instead of 2011:2100. The projected archive for tile 39 (CNRM-ESM2-1 ssp370) has no 2013-2016 files, and observed climate now covers 1901-2024, so projections before 2017 are not needed.
+- `init` now stops, before preparing any climate data, when the run's start is outside the climate years this module is asked for (`historicalClimateYears` and `projectedClimateYears`, 1991 to 2100 by default), for example the model years 0-10 that `setupProject()` gives without `times`. With a supplied `climateVariables`, whose years are not known here, it stops when the start is not a calendar year from 1901 to 2100. The check is `climateData::checkCalendarYears()` (climateData >= 2.2.3.9009); the message says how to proceed. The run may end after the last year.
 
 # canClimateData 1.1.0
 
