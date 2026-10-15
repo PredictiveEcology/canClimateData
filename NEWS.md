@@ -1,3 +1,7 @@
+# canClimateData (development version)
+
+- `init` now stops, before preparing any climate data, when the run's start is outside the climate years this module is asked for (`historicalClimateYears` and `projectedClimateYears`, 1991 to 2100 by default), for example the model years 0-10 that `setupProject()` gives without `times`. With a supplied `climateVariables`, whose years are not known here, it stops when the start is not a calendar year from 1901 to 2100. The check is `climateData::checkCalendarYears()` (climateData >= 2.2.3.9009); the message says how to proceed. The run may end after the last year.
+
 # canClimateData 1.1.0
 
 canClimateData now uses the current climateData package to prepare its climate layers. It can run hindcasts as well as forecasts, it returns historical and projected climate as named lists, and a shared output folder can be set for climate files. The manual was updated, with links for exploring and comparing climate scenarios.
