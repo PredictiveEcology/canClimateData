@@ -141,6 +141,10 @@ climateRastersToRewrite <- function(projectedType) {
   if (identical(projectedType, "hindcast")) "projected" else character(0)
 }
 
+## Arguments of `climateData::prepClimateLayers()` left out of its cache key: the per-run input and output
+## folders hold files, not data that changes the returned layers.
+prepClimateLayersOmitArgs <- function() c("srcdir", "dstdir")
+
 Init <- function(sim) {
   stopifnot(P(sim)$projectedType %in% c("forecast", "hindcast"))
 
@@ -197,7 +201,7 @@ Init <- function(sim) {
     rasterToMatch = sim$rasterToMatch,
     currentModuleName = "canClimateData"
   ) |>
-    Cache(omitArgs = c("climatePath", "climatePathOut"), useCloud = Par$.useCloud) ## TODO: improve use of cache
+    Cache(omitArgs = prepClimateLayersOmitArgs(), useCloud = Par$.useCloud) ## TODO: improve use of cache
 
   ## rename list elements and layers to match expected names downstream
   names(climateRasters) <- names(sim$climateVariables)

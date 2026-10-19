@@ -1,3 +1,9 @@
+# canClimateData (development version)
+
+- The `prepClimateLayers()` cache call omitted `climatePath` and `climatePathOut`, which are not arguments of
+  `prepClimateLayers()` (they are `srcdir` and `dstdir`), so nothing was omitted and each run's own input and
+  output folders forced the climate layers to be rebuilt. It now omits `srcdir` and `dstdir`.
+
 # canClimateData 1.1.0
 
 canClimateData now uses the current climateData package to prepare its climate layers. It can run hindcasts as well as forecasts, it returns historical and projected climate as named lists, and a shared output folder can be set for climate files. The manual was updated, with links for exploring and comparing climate scenarios.
