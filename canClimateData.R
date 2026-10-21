@@ -20,7 +20,7 @@ defineModule(sim, list(
   reqdPkgs = list("archive", "digest", "geodata", "googledrive", "purrr",
                   "R.utils", "sf", "spatialEco", "terra",
                   "dbplyr", # needed for prepClimateLayers
-                  "PredictiveEcology/climateData@development (>= 2.2.3.9008)",
+                  "PredictiveEcology/climateData@development (>= 2.2.3.9009)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9046)",
                   "PredictiveEcology/LandR@development (>= 1.1.0.9064)",
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9060)",
@@ -51,9 +51,12 @@ defineModule(sim, list(
     defineParameter("projectedClimatePeriod", "character", NULL, NA, NA,
                     paste("period to use for projected climate normals",
                           "if `climateVariables` not supplied.")),
-    defineParameter("projectedClimateYears", "numeric", 2011:2100, NA, NA,
+    defineParameter("projectedClimateYears", "numeric", 2017:2100, NA, NA,
                     paste("range of years captured by the projected climate data",
-                          "if `climateVariables` not supplied.")),
+                          "if `climateVariables` not supplied.",
+                          "Starts in 2017 because the projected archive for tile 39",
+                          "(CNRM-ESM2-1 ssp370) lacks 2013-2016, and observed climate",
+                          "now covers 1901-2024, so earlier projections are not needed.")),
     defineParameter("projectedType", "character", "forecast", NA, NA,
                     paste("one of 'forecast' or 'hindcast' to prepare either projected future,",
                           "or sampled historical data for hindcast studies, respectively.")),
@@ -142,6 +145,19 @@ climateRastersToRewrite <- function(projectedType) {
 }
 
 Init <- function(sim) {
+  ## When this module builds `climateVariables` it fetches `historicalClimateYears` and
+  ## `projectedClimateYears`, so the run's start must fall within those. A supplied
+  ## `climateVariables` has years this module cannot read, so only calendar years are required.
+  ## (`.inputObjects` sets the flag; it does not run when every input was supplied.)
+  fromParams <- isTRUE(mod$climateVariablesFromParams)
+  checkCalendarYears(start(sim), end(sim), module = "canClimateData",
+                     years = if (fromParams)
+                       c(P(sim)$historicalClimateYears, P(sim)$projectedClimateYears),
+                     hint = if (fromParams) {
+                       "Set `times` inside those years, or change `historicalClimateYears`/`projectedClimateYears`."
+                     } else {
+                       "`climateVariables` was supplied, so its years are not known here: set `times` to calendar years."
+                     })
   stopifnot(P(sim)$projectedType %in% c("forecast", "hindcast"))
 
   ## separate intermediate outputs from raw inputs, to reduce file conflicts on shared drives
@@ -290,7 +306,8 @@ Init <- function(sim) {
                 datatype = "INT1U", overwrite = TRUE)
   }
 
-  if (!suppliedElsewhere("climateVariables", sim)) {
+  mod$climateVariablesFromParams <- !suppliedElsewhere("climateVariables", sim)
+  if (mod$climateVariablesFromParams) {
     historical_prd <- P(sim)$historicalClimatePeriod
     historical_yrs <- P(sim)$historicalClimateYears
     projected_yrs <- P(sim)$projectedClimateYears
