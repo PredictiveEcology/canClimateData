@@ -12,7 +12,7 @@ defineModule(sim, list(
     person("Tati", "Micheletti", email = "tati.micheletti@gmail.com", role = "ctb")
   ),
   childModules = character(0),
-  version = list(canClimateData = "1.1.0"),
+  version = list(canClimateData = "1.1.0.9000"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -213,7 +213,7 @@ Init <- function(sim) {
     rasterToMatch = sim$rasterToMatch,
     currentModuleName = "canClimateData"
   ) |>
-    Cache(omitArgs = c("climatePath", "climatePathOut"), useCloud = Par$.useCloud) ## TODO: improve use of cache
+    Cache(omitArgs = c("srcdir", "dstdir"), useCloud = Par$.useCloud) ## TODO: improve use of cache
 
   ## rename list elements and layers to match expected names downstream
   names(climateRasters) <- names(sim$climateVariables)
