@@ -1,3 +1,7 @@
+# canClimateData (development version)
+
+- Fixed: the `Cache()` of `prepClimateLayers()` in `Init()` (canClimateData.R) named the module's local variables (`climatePath`, `climatePathOut`) in `omitArgs` instead of the function's formal arguments (`srcdir`, `dstdir`), so nothing was omitted and the folder paths stayed in the cache key. Changing the input or output folder (a new per-study-area folder, a different mount on another machine) re-prepared the climate data. The cache key changes, so every study area re-prepares its climate data once. The result is file-backed under `dstdir`; `reproducible` restores it under the current `outputPath` (or the cache) on a hit, so omitting `dstdir` is safe.
+
 # canClimateData 1.1.0
 
 canClimateData now uses the current climateData package to prepare its climate layers. It can run hindcasts as well as forecasts, it returns historical and projected climate as named lists, and a shared output folder can be set for climate files. The manual was updated, with links for exploring and comparing climate scenarios.
