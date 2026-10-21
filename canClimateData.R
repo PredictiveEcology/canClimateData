@@ -12,7 +12,7 @@ defineModule(sim, list(
     person("Tati", "Micheletti", email = "tati.micheletti@gmail.com", role = "ctb")
   ),
   childModules = character(0),
-  version = list(canClimateData = "1.1.0"),
+  version = list(canClimateData = "1.1.0.9000"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
