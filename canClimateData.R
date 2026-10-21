@@ -197,7 +197,7 @@ Init <- function(sim) {
     rasterToMatch = sim$rasterToMatch,
     currentModuleName = "canClimateData"
   ) |>
-    Cache(omitArgs = c("climatePath", "climatePathOut"), useCloud = Par$.useCloud) ## TODO: improve use of cache
+    Cache(omitArgs = c("srcdir", "dstdir"), useCloud = Par$.useCloud) ## TODO: improve use of cache
 
   ## rename list elements and layers to match expected names downstream
   names(climateRasters) <- names(sim$climateVariables)
