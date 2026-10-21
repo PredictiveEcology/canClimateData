@@ -229,16 +229,8 @@ Init <- function(sim) {
 
   ## sample use historical layers for use with hindcasting
   if (P(sim)$projectedType == "hindcast") {
-    ## use same (sampled) years for each climate variable!
-    rndsmp <- sample(x = seq(terra::nlyr(projectedClimateRasters[[1]])),
-                     size = length(projected_yrs),
-                     replace = TRUE)
-    projectedClimateRasters <- lapply(projectedClimateRasters,
-                                      FUN = function(x, n_year = rndsmp, n_name = projected_yrs) {
-      z <- terra::subset(x, n_year)
-      terra::set.names(z, paste0("year", n_name))
-      return(z)
-    })
+    projectedClimateRasters <- sampleHindcastLayers(projectedClimateRasters,
+                                                    years = P(sim)$projectedClimateYears)
   }
   ## save updated layer names to disk only where `Cache()` cannot reliably restore them
   ## on its own; see `climateRastersToRewrite()` above for why.
@@ -252,6 +244,17 @@ Init <- function(sim) {
   sim$projectedClimateRasters <- projectedClimateRasters
 
   return(invisible(sim))
+}
+
+## For hindcasts: sample historical layers (with replacement), one per projected year, and name
+## them by those years. The same sampled layers are used for each climate variable.
+sampleHindcastLayers <- function(rasters, years) {
+  rndsmp <- sample(x = seq(terra::nlyr(rasters[[1]])), size = length(years), replace = TRUE)
+  lapply(rasters, function(x) {
+    z <- terra::subset(x, rndsmp)
+    terra::set.names(z, paste0("year", years))
+    z
+  })
 }
 
 .inputObjects <- function(sim) {
