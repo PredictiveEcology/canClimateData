@@ -143,8 +143,8 @@ climateRastersToRewrite <- function(projectedType,
 }
 
 ## Write each raster to a new file so the file carries the updated layer names.
-## Multi-layer stacks are written band-interleaved in 256 x 256 tiles, as
-## climateData::prepClimateLayers() writes them (its `.climateStackGdalOptions`), so reading one
+## Multi-layer stacks are written band-interleaved in 256 x 256 tiles, the layout climateData#33
+## proposes for climateData::prepClimateLayers() (its `climateStackGdalOptions()`), so reading one
 ## year's layer does not decompress every layer. With GDAL's default (pixel-interleaved 1-row
 ## strips), that read took 1.6 s instead of 0.04 s for a 90-layer, 1000 x 1000 test stack.
 writeUpdatedLayerNames <- function(rasters,

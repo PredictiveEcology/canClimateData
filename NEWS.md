@@ -6,8 +6,8 @@
   `historicalClimateRasters` and `projectedClimateRasters` to new files with the renamed layers.
   1.1.0 relied on `Cache()` to restore layer names, which does nothing when caching
   is off, so the files on disk kept the old names. Multi-layer stacks are rewritten band-interleaved
-  in 256 x 256 tiles, as `climateData::prepClimateLayers()` writes them, so one year's layer can be
-  read without decompressing the others.
+  in 256 x 256 tiles, the layout climateData#33 proposes for `prepClimateLayers()`, so one year's
+  layer can be read without decompressing the others.
 
 # canClimateData 1.1.0
 
