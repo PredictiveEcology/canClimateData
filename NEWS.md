@@ -1,11 +1,24 @@
 # canClimateData (development version)
 
+- Fixed: the `Cache()` of `prepClimateLayers()` in `Init()` (canClimateData.R) named the module's local variables (`climatePath`, `climatePathOut`) in `omitArgs` instead of the function's formal arguments (`srcdir`, `dstdir`), so nothing was omitted and the folder paths stayed in the cache key. Changing the input or output folder (a new per-study-area folder, a different mount on another machine) re-prepared the climate data. The cache key changes, so every study area re-prepares its climate data once. The result is file-backed under `dstdir`; `reproducible` restores it under the current `outputPath` (or the cache) on a hit, so omitting `dstdir` is safe.
+
 - Fixed: with `options(reproducible.useCache = FALSE)`, `Init()` again writes
   `historicalClimateRasters` and `projectedClimateRasters` to new files with the renamed layers.
-  The previous change relied on `Cache()` to restore layer names, which does nothing when caching
+  1.1.0 relied on `Cache()` to restore layer names, which does nothing when caching
   is off, so the files on disk kept the old names. Multi-layer stacks are rewritten band-interleaved
   in 256 x 256 tiles, as `climateData::prepClimateLayers()` writes them, so one year's layer can be
-  read without decompressing the others. Version 1.0.4.9002.
+  read without decompressing the others.
+
+# canClimateData 1.1.0
+
+canClimateData now uses the current climateData package to prepare its climate layers. It can run hindcasts as well as forecasts, it returns historical and projected climate as named lists, and a shared output folder can be set for climate files. The manual was updated, with links for exploring and comparing climate scenarios.
+
+The module no longer writes a second copy of every climate layer to disk. That copy took roughly 2.3 GB per climate variable per study area. Climate normals now have the right layer names, and hindcasts sample historical years correctly. The minimum versions of climateData and reproducible were raised to pick up fixes to monthly precipitation and to layer smoothing. Climate layers cached by earlier versions are rebuilt once.
+
+# canClimateData 1.0.4.9002
+
+- Floors raised to climateData >= 2.2.3.9008 (cells whose 12 monthly PPT values are all 0 become NA) and reproducible >= 3.2.1.9060 (`postProcessTo()` no longer forces `terraOptions(memfrac = 0)`, which smoothed every climate layer). The `init` event's cache key includes reqdPkgs, so cached climate layers built before these fixes are rebuilt once instead of being restored.
+
 - Fixed: `Init()` (canClimateData.R) rewrote both `historicalClimateRasters` and
   `projectedClimateRasters` to disk after renaming their layers, even though
   `historicalClimateRasters` is never subset and the renamed, in-memory stack is already
