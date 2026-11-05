@@ -1,4 +1,5 @@
-## Caller for the testthat-module reusable workflow.
+## Example caller for the testthat-module reusable workflow.
+## Replace canClimateData with the module name (which must match the repository name).
 
 name: testthat-module
 
