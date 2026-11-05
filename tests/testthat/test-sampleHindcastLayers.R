@@ -2,8 +2,13 @@
 ## projectedType = "hindcast" failed with "object 'projected_yrs' not found".
 
 test_that("sampleHindcastLayers() gives one layer per projected year, named by year", {
-  hist <- terra::rast(nrows = 2, ncols = 2, nlyrs = 3, vals = 1:12,
-                      names = paste0("MDC_historical_", 1991:1993))
+  hist <- terra::rast(
+    nrows = 2,
+    ncols = 2,
+    nlyrs = 3,
+    vals = 1:12,
+    names = paste0("MDC_historical_", 1991:1993)
+  )
   out <- sampleHindcastLayers(list(MDC = hist), years = 2011:2015)
 
   expect_identical(names(out), "MDC")

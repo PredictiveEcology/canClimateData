@@ -244,8 +244,10 @@ Init <- function(sim) {
 
   ## sample use historical layers for use with hindcasting
   if (P(sim)$projectedType == "hindcast") {
-    projectedClimateRasters <- sampleHindcastLayers(projectedClimateRasters,
-                                                    years = P(sim)$projectedClimateYears)
+    projectedClimateRasters <- sampleHindcastLayers(
+      projectedClimateRasters,
+      years = P(sim)$projectedClimateYears
+    )
   }
   ## save updated layer names to disk where `Cache()` won't restore them;
   ## see `climateRastersToRewrite()` above for why.
