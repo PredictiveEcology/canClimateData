@@ -1,5 +1,9 @@
 # canClimateData (development version)
 
+- Fixed: `projectedType = "hindcast"` failed in `Init()` with "object 'projected_yrs' not found",
+  because `projected_yrs` was only defined inside `.inputObjects()`. Hindcast layers are now
+  sampled and named using `P(sim)$projectedClimateYears`.
+
 - Fixed: the `Cache()` of `prepClimateLayers()` in `Init()` (canClimateData.R) named the module's local variables (`climatePath`, `climatePathOut`) in `omitArgs` instead of the function's formal arguments (`srcdir`, `dstdir`), so nothing was omitted and the folder paths stayed in the cache key. Changing the input or output folder (a new per-study-area folder, a different mount on another machine) re-prepared the climate data. The cache key changes, so every study area re-prepares its climate data once. The result is file-backed under `dstdir`; `reproducible` restores it under the current `outputPath` (or the cache) on a hit, so omitting `dstdir` is safe.
 
 - Fixed: with `options(reproducible.useCache = FALSE)`, `Init()` again writes
@@ -28,6 +32,3 @@ The module no longer writes a second copy of every climate layer to disk. That c
   ELF). The rewrite is now kept only for `projectedClimateRasters` under hindcast, where
   `terra::subset()` samples layers with replacement and out of order, which `Cache()`
   cannot reliably restore on its own when the layer count is unchanged. Version 1.0.4.9001.
-- Fixed: `projectedType = "hindcast"` failed in `Init()` with "object 'projected_yrs' not found",
-  because `projected_yrs` was only defined inside `.inputObjects()`. Hindcast layers are now
-  sampled and named using `P(sim)$projectedClimateYears`.
