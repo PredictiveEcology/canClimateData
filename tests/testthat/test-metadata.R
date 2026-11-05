@@ -44,3 +44,9 @@ test_that("parameters are the expected names", {
            "projectedClimateYears", "projectedType", "quickCheck"))
   )
 })
+
+test_that("projected climate years start in 2017", {
+  md <- SpaDES.core::moduleMetadata(module = moduleName, path = modulePath)
+  pars <- stats::setNames(md$parameters$default, md$parameters$paramName)
+  expect_identical(pars[["projectedClimateYears"]], 2017:2100)
+})
