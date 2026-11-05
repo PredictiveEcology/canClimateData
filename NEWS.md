@@ -1,4 +1,4 @@
-# canClimateData (development version)
+# canClimateData 1.1.1
 
 - Fixed: `projectedType = "hindcast"` failed in `Init()` with "object 'projected_yrs' not found",
   because `projected_yrs` was only defined inside `.inputObjects()`. Hindcast layers are now
