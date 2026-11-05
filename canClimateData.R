@@ -8,36 +8,61 @@ defineModule(sim, list(
   authors = c(
     person("Ian", "Eddy", email = "ian.eddy@nrcan-rncan.gc.ca", role = "aut"),
     person("Alex M", "Chubaty", email = "achubaty@for-cast.ca", role = c("aut", "cre")),
-    person("Eliot", "McIntire", email = "eliot.mcintire@nrcan-rncan.gc.ca", role = "ctb")
+    person("Eliot", "McIntire", email = "eliot.mcintire@nrcan-rncan.gc.ca", role = "aut"),
+    person("Tati", "Micheletti", email = "tati.micheletti@gmail.com", role = "ctb")
   ),
   childModules = character(0),
-  version = list(canClimateData = "1.0.0"),
+  version = list(canClimateData = "1.1.1"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = deparse(list("README.md", "canClimateData.Rmd")),
-  reqdPkgs = list("archive", "digest", "geodata", "googledrive", "purrr",
+  reqdPkgs = list("archive", "digest", "geodata", "googledrive", "httr2", "purrr",
                   "R.utils", "sf", "spatialEco", "terra",
-                  "PredictiveEcology/climateData@development (>= 1.0.1)",
+                  "dbplyr", # needed for prepClimateLayers
+                  "PredictiveEcology/climateData@development (>= 2.2.3.9008)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9046)",
                   "PredictiveEcology/LandR@development (>= 1.1.0.9064)",
-                  "PredictiveEcology/reproducible@development (>= 2.0.8.9001)",
+                  "PredictiveEcology/reproducible@development (>= 3.2.1.9060)",
+                  "PredictiveEcology/SpaDES.core@development (>= 2.1.5)",
                   "PredictiveEcology/SpaDES.tools@development (>= 2.0.4.9002)"),
   parameters = rbind(
     defineParameter("bufferDist", "numeric", 20000, NA, NA,
-                    "Distance (m) to buffer `studyArea` and `rasterToMatch` when creating 'Large' versions."),
+                    paste("Distance (m) to buffer `studyArea` and `rasterToMatch`",
+                          "to mitigate edge effects for simulation.")),
     defineParameter("climateGCM", "character", "CNRM-ESM2-1", NA, NA,
                     paste("Global Circulation Model to use for climate projections:",
-                          "currently '13GCMs_ensemble', 'CanESM5', 'CNRM-ESM2-1', or 'CCSM4'.")),
+                          "currently 'CanESM5' or 'CNRM-ESM2-1'.")),
     defineParameter("climateSSP", "numeric", 370, NA, NA,
-                    "SSP emissions scenario for `climateGCM`: one of 245, 370, or 585.",
-                    "[If using 'climateGCM = CCSM4', climateSSP must be one of 45 or 85.]"),
-    defineParameter("historicalFireYears", "numeric", default = 1991:2020, NA, NA,
-                    desc = "range of years captured by the historical climate data"),
-    defineParameter("projectedFireYears", "numeric", default = 2011:2100, NA, NA,
-                    desc = "range of years captured by the projected climate data"),
-    defineParameter("studyAreaName", "character", NA_character_, NA, NA,
-                    paste("User-defined label for the current stuyd area.",
+                    paste("SSP emissions scenario for `climateGCM`: one of 245, 370, or 585.")),
+    defineParameter("historicalClimatePeriod", "character", c("1951_1980", "1981_2010"), NA, NA,
+                    paste("period to use for historical climate normals",
+                          "if `climateVariables` not supplied.")),
+    defineParameter("historicalClimateYears", "numeric", 1991:2022, NA, NA,
+                    paste("range of years captured by the historical climate data",
+                          "if `climateVariables` not supplied.")),
+    defineParameter("outputDir", "character", NA_character_, NA, NA,
+                    paste("Directory path for prepared climate data rasters.",
+                          "User should specify a shared directory",
+                          "(e.g., when running multiple simulation replicates)",
+                          "to avoid multiple copies of the climate data.",
+                          "If not specified by the user, a subdirectory of the simulation output",
+                          "directory will be used (i.e., `file.path(outputPath(sim), 'climate')`.")),
+    defineParameter("projectedClimatePeriod", "character", NULL, NA, NA,
+                    paste("period to use for projected climate normals",
+                          "if `climateVariables` not supplied.")),
+    defineParameter("projectedClimateYears", "numeric", 2011:2100, NA, NA,
+                    paste("range of years captured by the projected climate data",
+                          "if `climateVariables` not supplied.")),
+    defineParameter("projectedType", "character", "forecast", NA, NA,
+                    paste("one of 'forecast' or 'hindcast' to prepare either projected future,",
+                          "or sampled historical data for hindcast studies, respectively.")),
+    defineParameter("quickCheck", "logical", TRUE, NA, NA,
+                    paste("`prepClimateData` uses `prepInputs` internally; set this to `TRUE` to avoid",
+                          "the slow process of digesting potentially MANY files.",
+                          "This will use `file.size` only, if `TRUE`.")),
+    defineParameter(".studyAreaName", "character", NA_character_, NA, NA,
+                    paste("User-defined label for the current study area.",
                           "If `NA`, a hash of `studyArea` will be used.")),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA,
                     "Describes the simulation time at which the first plot event should occur."),
@@ -50,30 +75,29 @@ defineModule(sim, list(
     defineParameter(".useCache", "logical", FALSE, NA, NA,
                     paste("Should this entire module be run with caching activated?",
                           "This is generally intended for data-type modules, where stochasticity",
-                          "and time are not relevant"))
+                          "and time are not relevant."))
   ),
   inputObjects = bindrows(
+    expectsInput("climateVariables", "list",
+                 paste("a list, named by climate variable using `'projected_'` or `'historical_'`",
+                       "prefixes, with each list element containing a list of three arguments:",
+                       "`vars` - the raw variables used to derive the target variable;",
+                       "`fun` - the quoted function used to derive the target variable, where",
+                       "`'quote(calcAsIs)'` denotes target variables that ARE the raw variable;",
+                       "and `dots` - additional arguments passed to `fun`.",
+                       "See `.inputObjects` for examples of how to build this object,",
+                       "and `?climateData::prepClimateLayers` for how it is used.",
+                       "The GCM, SSP, and selected years, whether projected or historical,",
+                       "are set by module parameters and must be identical for all variables.",
+                       "See also <https://climatena.ca/Help2#_var> for all available climate variables."),
+                       sourceURL = NA),
     expectsInput("rasterToMatch", "SpatRaster",
-                 desc = "template raster", sourceURL = NA),
-    expectsInput("rasterToMatchLarge", "SpatRaster",
-                 desc = "template raster for larger area", sourceURL = NA),
-    expectsInput("rasterToMatchReporting", "SpatRaster",
-                 desc = "template raster for reporting area", sourceURL = NA),
+                 desc = "template raster corresponding to `studyArea`.", sourceURL = NA),
     expectsInput("studyArea", "sf",
                  desc = "study area used for simulation (buffered to mitigate edge effects)",
-                 sourceURL = NA),
-    expectsInput("studyAreaLarge", "sf",
-                 desc = "study area used for module parameterization (buffered)", sourceURL = NA),
-    expectsInput("studyAreaReporting", "sf",
-                 desc = "study area used for reporting/post-processing", sourceURL = NA)
+                 sourceURL = NA)
   ),
   outputObjects = bindrows(
-    createsOutput("ATAstack", "SpatRaster",
-                  desc = "annual projected mean annual temperature anomalies, units stored as tenth of a degree"),
-    createsOutput("CMIstack", "SpatRaster",
-                  desc = "annual projected mean climate moisture deficit"),
-    createsOutput("CMInormal", "SpatRaster",
-                  desc = "Climate Moisture Index Normals from 1950-2010"),
     createsOutput("historicalClimateRasters", "list",
                   desc = "list of a single raster stack - historical MDC calculated from ClimateNA data"),
     createsOutput("projectedClimateRasters", "list",
@@ -104,334 +128,160 @@ doEvent.canClimateData = function(sim, eventTime, eventType) {
   return(invisible(sim))
 }
 
-## event functions
-#   - keep event functions short and clean, modularize by calling subroutines from section below.
+## event functions ----------------------------------------------------------------------------
 
-### template initialization
+## Which of "historical"/"projected" climate raster stacks need to be rewritten to disk
+## with their updated layer names. With caching off, `Cache()` is skipped and nothing restores
+## the renamed layers, so both are written. With caching on, `reproducible::Cache()` restores a
+## file-backed SpatRaster's layer names from its cache tags, so only `projectedClimateRasters`
+## under hindcast is written: it is subset with replacement (repeated, out-of-order layers),
+## which `Cache()` cannot reliably restore when the layer count is unchanged.
+climateRastersToRewrite <- function(projectedType,
+                                    useCache = getOption("reproducible.useCache", TRUE)) {
+  if (isFALSE(as.logical(useCache))) return(c("historical", "projected"))
+  if (identical(projectedType, "hindcast")) "projected" else character(0)
+}
+
+## Write each raster to a new file so the file carries the updated layer names.
+## Multi-layer stacks are written band-interleaved in 256 x 256 tiles, the layout climateData#33
+## proposes for climateData::prepClimateLayers() (its `climateStackGdalOptions()`), so reading one
+## year's layer does not decompress every layer. With GDAL's default (pixel-interleaved 1-row
+## strips), that read took 1.6 s instead of 0.04 s for a 90-layer, 1000 x 1000 test stack.
+writeUpdatedLayerNames <- function(rasters,
+                                   gdal = c("INTERLEAVE=BAND", "TILED=YES",
+                                            "BLOCKXSIZE=256", "BLOCKYSIZE=256")) {
+  lapply(rasters, function(x) {
+    terra::writeRaster(x, .suffix(terra::sources(x), "updated"), overwrite = TRUE,
+                       gdal = if (terra::nlyr(x) > 1) gdal)
+  })
+}
+
 Init <- function(sim) {
-  dPath <- asPath(getOption("reproducible.destinationPath", dataPath(sim)), 1)
+  stopifnot(P(sim)$projectedType %in% c("forecast", "hindcast"))
 
-  if (is.na(P(sim)$studyAreaName)) {
+  ## separate intermediate outputs from raw inputs, to reduce file conflicts on shared drives
+  climatePath <- file.path(inputPath(sim), "climate") |> checkPath(create = TRUE) |> asPath(1)
+  # climatePath <- file.path(inputPath(sim), "climate", Par$.studyAreaName) |> checkPath(create = TRUE) |> asPath(1)
+  climatePathOut <- if (is.null(P(sim)$outputDir) || is.na(P(sim)$outputDir)) {
+    file.path(outputPath(sim), "climate") |> checkPath(create = TRUE) |> asPath(1)
+  } else {
+    file.path(P(sim)$outputDir) |> checkPath(create = TRUE) |> asPath(1)
+  }
+
+  if (is.na(P(sim)$.studyAreaName)) {
     ## use unique hash as study area name
-    P(sim, "studyAreaName") <- studyAreaName(sim$studyArea)
+    P(sim, ".studyAreaName") <- studyAreaName(sim$studyArea)
   }
 
   ## ensure this matches mod$targetCRS defined in .inputObjects !!
   mod$targetCRS <- paste("+proj=lcc +lat_1=49 +lat_2=77 +lat_0=0 +lon_0=-95",
                          "+x_0=0 +y_0=0 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0")
 
-  fn1 <- function(x) {
-    x <- readRDS(x)
-    if (is(x, "PackedSpatVector")) {
-      x <- terra::unwrap(x)
-    }
-    st_as_sf(x) |>
-     st_transform(mod$targetCRS)
-  }
-
-  canProvs <- Cache(
-    prepInputs,
-    "GADM",
-    fun = fn1,
-    dlFun = "geodata::gadm",
-    country = "CAN", level = 1, path = dPath, version = "3.6",
-    targetFile = "gadm36_CAN_1_sp.rds", ## TODO: update with 'version' above
-    destinationPath = dPath,
-    useCache = P(sim)$.useCache
-  ) |>
-    sf::st_as_sf() |>
-    sf::st_transform(mod$targetCRS)
-
-  whereAmI <- reproducible::postProcessTo(canProvs, to = sim$studyArea)$NAME_1 |>
-    gsub("Nunavut", "Northwest Territories", x = _) |> ## NT+NU together
-    unique()
-
-  provsWithData <- data.frame(
-    shortName = c("AB", "BC", "MB", "NT", "ON", "QC", "SK", "YT"),
-    longName = c("Alberta", "British Columbia", "Manitoba",
-                 "Northwest Territories",
-                 "Ontario", "Québec", "Saskatchewan", "Yukon"),
-    dirName = c("Alberta", "British Columbia", "Manitoba",
-                "Northwest Territories & Nunavut",
-                "Ontario", "Quebec", "Saskatchewan", "Yukon") ## no accents
-  )
-
-  stopifnot(all(whereAmI %in% provsWithData$longName))
-
-  mod$studyAreaNameShort <- provsWithData[provsWithData$longName %in% whereAmI, ]$shortName
-  mod$studyAreaNameDir <- provsWithData[provsWithData$longName %in% whereAmI, ]$dirName |>
-    setNames(mod$studyAreaNameShort)
-
-  if (!P(sim)$climateGCM %in% c("13GCMs_ensemble", "CanESM5", "CNRM-ESM2-1", "CCSM4")) {
+  availableGCMs <- available("future")[["gcms"]]
+  if (!P(sim)$climateGCM %in% availableGCMs) {
     stop("Invalid climate model specified.\n",
-         "climateGCM should be one of '13GCMs_ensemble', 'CanESM5', 'CNRM-ESM2-1', or 'CCSM4'.")
+         "climateGCM should be one of: ", paste(availableGCMs, collapse = ", "), ".")
   }
 
-  if (!P(sim)$climateSSP %in% c(45, 85, 245, 370, 585)) {
-    stop("Invalid SSP scenario for climate model ", P(sim)$climateGCM, ".\n",
-         "climateSSP should be one of '245', '370', or '585' (or one of RCP '45' and '85').")
+  availableSSPs <- available("future")[["ssps"]]
+  if (!P(sim)$climateSSP %in% availableSSPs) {
+    stop("Invalid SSP scenario for climate model ", P(sim)$climateGCM, "_ssp", P(sim)$climateSSP, ".\n",
+         "climateSSP should be one of: ", paste(availableSSPs, collapse = ", "), ".")
   }
 
-  ## studyArea-specific shapefiles and rasters
-  dt <- data.table::fread(file = file.path(dataPath(sim), "climateDataURLs.csv"))
-
-  ## lookup table to get climate urls  based on studyArea, GCM, and SSP
-  historicalClimateURL <- dt[studyArea %in% mod$studyAreaNameShort & type == "hist_monthly", GID]
-  names(historicalClimateURL) <- mod$studyAreaNameShort
-
-  projectedClimateUrl <- dt[studyArea %in% mod$studyAreaNameShort &
-                              GCM == P(sim)$climateGCM &
-                              SSP == P(sim)$climateSSP &
-                              type == "proj_monthly", GID]
-  names(projectedClimateUrl) <- mod$studyAreaNameShort
-
-  demURL <- sapply(mod$studyAreaNameShort, switch,
-                   AB = "https://drive.google.com/file/d/1g1SEU65zje6686pQXQzVVQQc44IXaznr/",
-                   BC = "https://drive.google.com/file/d/1DaAYFr0z38qmbZcz452QPMP_fzwUIqLD/",
-                   MB = "https://drive.google.com/file/d/1X7b2CE6QyCvik3UG9pUj6zc4b5UYZi8w/",
-                   NT = "https://drive.google.com/file/d/13n8LjQJihy9kd3SniS91EuXunowbWOBa/", ## with NU
-                   ON = "https://drive.google.com/file/d/1NP2toth6-c5g7dzwLh34pqZ0rdypTauS/",
-                   QC = "https://drive.google.com/file/d/1xShpp_irB2AH1ak9Z1i4wXZJuzncpAbc/",
-                   SK = "https://drive.google.com/file/d/1CooPdqc3SlVVU7y_BaPfZD0OXt42fjBC/",
-                   YT = "https://drive.google.com/file/d/1CUMjLFGdGtwaQlErQ0Oq89ICUCcX641Q/",
-                   RIA = "https://drive.google.com/file/d/13sGg1X9DEOSkedg1m0PxcdJiuBESk072/")
-
-  sim$studyArea$studyAreaName <- paste0(P(sim)$studyAreaName, collapse = "_")  # makes it a data.frame
+  digestSA_RTM <- .robustDigest(list(sim.studyArea = sim$studyArea,
+                                     sim.rasterToMatch = sim$rasterToMatch))
+  # This was removed May 2025; seemed to have no use
+  # sim$studyArea$studyAreaName <- paste0(P(sim)$.studyAreaName, collapse = "_") ## makes it a data.frame
 
   stopifnot(getOption("reproducible.useNewDigestAlgorithm") == 2)
 
-  ## get pre-made DEM to use with climate data
-  dems <- lapply(mod$studyAreaNameShort, function(prov) {
-    cacheTags <- c(prov, currentModule(sim))
-    dem <- Cache(prepInputs,
-                 url = demURL[[prov]],
-                 destinationPath = dPath,
-                 fun = "terra::rast",
-                 useCache = P(sim)$.useCache,
-                 userTags = c(paste0("DEM_", prov), cacheTags))
-    crs(dem) <- crs("epsg:4326")
-    dem
-  })
-  dem <- SpaDES.tools::mergeRaster(dems)
+  ## PREPARE CLIMATE LAYERS
+  GCM <- P(sim)$climateGCM
+  SSP <- P(sim)$climateSSP
 
-  ## HISTORIC CLIMATE DATA
-  digestSA_RTM <- CacheDigest(list(sim$studyArea, sim$rasterToMatch))$outputHash
+  climateRasters <- prepClimateLayers(
+    climateVarsList = sim$climateVariables,
+    srcdir = climatePath,    ## 'src' is the place for raw inputs, downloaded from Google Drive
+    dstdir = climatePathOut, ## 'dst' is the place for intermediate + final outputs
+    gcm = GCM,
+    ssp = SSP,
+    cl = NULL, ## TODO: allow user to pass their own cl object to module
+    studyArea = sim$studyArea,
+    studyAreaName = P(sim)$.studyAreaName,
+    rasterToMatch = sim$rasterToMatch,
+    currentModuleName = "canClimateData"
+  ) |>
+    Cache(omitArgs = c("srcdir", "dstdir"), useCloud = Par$.useCloud) ## TODO: improve use of cache
 
-  historicalClimatePath <- file.path(dPath, "climate", "historic") |>
-    checkPath(create = TRUE)
-  histMDCs <- lapply(mod$studyAreaNameShort, function(prov) {
-    cacheTags <- c(P(sim)$studyAreaName, currentModule(sim))
-    historicalClimateArchive <- file.path(historicalClimatePath, paste0(mod$studyAreaNameDir[[prov]], ".zip"))
-    historicalMDCfile <- file.path(historicalClimatePath,
-                                   paste0("MDC_historical_",
-                                          paste(P(sim)$studyAreaName, collapse = "_"), ".tif"))
+  ## rename list elements and layers to match expected names downstream
+  names(climateRasters) <- names(sim$climateVariables)
 
-    ## need to download and extract w/o prepInputs to preserve folder structure!
-    if (!file.exists(historicalClimateArchive)) {
-      tryCatch({
-        R.utils::withTimeout({
-          googledrive::drive_download(file = as_id(historicalClimateURL[[prov]]), path = historicalClimateArchive)
-        }, timeout = 1800, onTimeout = "error")
-      },
-      error = function(e) {
-        unlink(historicalClimateArchive)
-        stop(paste0(
-          "The download of the file '", basename(historicalClimateArchive), "' was unsuccessful, ",
-          "most likely due to its size and an unstable internet connection.",
-          "Please download it manually from ",
-          paste0("https://drive.google.com/file/d/", historicalClimateURL[[prov]]),
-          ", save it as ", historicalClimateArchive, "."
-        ))
-      })
-      archive::archive_extract(historicalClimateArchive, historicalClimatePath)
-    }
+  #rename normals with period prefix and annuals with year prefix
+  #3 for annual, 8? for normal
+  last4 <- function(x, nCharByVar = 3) substr(x, nchar(x) - nCharByVar, nchar(x))
+  fixNames <- function(rstack, preFix, nCharByVar){
+    terra::set.names(rstack, paste0(preFix, last4(names(rstack), nCharByVar)))
+    return(rstack)
+  }
 
-    ## all downstream stuff from this one archive file should have same Cache assessment
-    ##   do it once here and pass to each subsequent through .cacheExtra
-    digestFiles <- digest::digest(file = historicalClimateArchive, algo = "xxhash64")
-    digestYears <- CacheDigest(list(P(sim)$historicalFireYears))$outputHash
+  normals <- grep("normal", names(sim$climateVariables))
+  climateRasters[normals] <- lapply(climateRasters[normals], 
+                                    fixNames, preFix = "period", nCharByVar = 8)
+  annuals <- grep("normal", names(sim$climateVariables), invert = TRUE)
+  climateRasters[annuals] <- lapply(climateRasters[annuals], 
+                                    fixNames, preFix = "year", nCharByVar = 3)
 
-    historicalMDC <- {
-      makeMDC(inputPath = checkPath(file.path(historicalClimatePath, mod$studyAreaNameDir[[prov]]),
-                                    create = TRUE),
-              years = P(sim)$historicalFireYears
-      ) |>
-        postProcessTo(to = sim$rasterToMatch,
-                      maskTo = sim$studyArea,
-                      writeTo = historicalMDCfile,
-                      quick = "writeTo",
-                      datatype = "INT2U")
-    } |>
-      Cache(
-        omitArgs = c("from", "to", "maskTo", "writeTo", "to"),
-        .functionName = "makeMDC_forHistoricalMDC",
-        .cacheExtra = c(digestFiles, digestSA_RTM, digestYears),
-        userTags = c("historicMDC", cacheTags)
-      )
 
-    return(historicalMDC)
-  })
-  historicalMDC <- SpaDES.tools::mergeRaster(histMDCs)
+  historicalClimateRasters <- climateRasters[grep(pattern = "historical_",
+                                                  x = names(climateRasters))]
+  names(historicalClimateRasters) <- gsub(pattern = "historical_", replacement = "",
+                                          x = names(historicalClimateRasters))
+  projectedClimateRasters <- climateRasters[grep(pattern = "projected_",
+                                                 x  = names(climateRasters))]
+  names(projectedClimateRasters) <- gsub(pattern = "projected_", replacement = "",
+                                         x = names(projectedClimateRasters))
 
-  ## The names need "year" at the start, because not every year will have fires (data issue in RIA),
-  ## so fireSense matches fires + climate rasters by year.
-  ## WARNING: names(historicalMDC) <- paste0('year', P(sim)$historicalFireYears) # Bad
-  ##          |-> allows for index mismatching
-  historicalMDC <- updateStackYearNames(historicalMDC, Par$historicalFireYears)
-
-  compareGeom(historicalMDC, sim$rasterToMatch)
-
-  sim$historicalClimateRasters <- list("MDC" = historicalMDC)
-
-  ## FUTURE CLIMATE DATA
-  projectedClimatePath <- file.path(dPath, "climate", "future",
-                                    paste0(P(sim)$climateGCM, "_ssp", P(sim)$climateSSP)) |>
-    checkPath(create = TRUE)
-
-  projMDCs <- lapply(mod$studyAreaNameShort, function(prov) {
-    cacheTags <- c(prov, currentModule(sim))
-    projectedClimateArchive <- file.path(dirname(projectedClimatePath),
-                                         paste0(mod$studyAreaNameDir[[prov]], "_",
-                                                P(sim)$climateGCM, "_ssp",
-                                                P(sim)$climateSSP, ".zip"))
-    projectedMDCfile <- file.path(dirname(projectedClimatePath),
-                                  paste0("MDC_future_", P(sim)$climateGCM,
-                                         "_ssp", P(sim)$climateSSP, "_",
-                                         paste(P(sim)$studyAreaName, collapse = "_"), ".tif"))
-
-    ## need to download and extract w/o prepInputs to preserve folder structure!
-    if (!file.exists(projectedClimateArchive)) {
-      tryCatch({
-        R.utils::withTimeout({
-          googledrive::drive_download(file = as_id(projectedClimateUrl[[prov]]), path = projectedClimateArchive)
-        }, timeout = 1800,  onTimeout = "error")
-      },
-      error = function(e) {
-        unlink(projectedClimateArchive)
-        stop(paste0(
-          "The download of the file '", basename(projectedClimateArchive), "' was unsuccessful, ",
-          "most likely due to its size and an unstable internet connection.",
-          "Please download it manually from ",
-          paste0("https://drive.google.com/file/d/", projectedClimateUrl[[prov]]),
-          ", save it as ", projectedClimateArchive, "."
-        ))
-      })
-      archive::archive_extract(projectedClimateArchive, projectedClimatePath)
-    }
-    digestFiles <- digest::digest(file = projectedClimateArchive, algo = "xxhash64")
-    digestYears <- CacheDigest(list(P(sim)$projectedFireYears))$outputHash
-
-    projectedMDC <- {
-      makeMDC(inputPath = file.path(projectedClimatePath, mod$studyAreaNameDir[[prov]]),
-              years = P(sim)$projectedFireYears) |>
-        postProcessTo(to = sim$rasterToMatch,
-                      maskTo = sim$studyArea,
-                      writeTo = projectedMDCfile,
-                      quick = "writeTo",
-                      datatype = "INT2U")
-    } |>
-      Cache(
-        omitArgs = c("from", "to", "maskTo"),
-        userTags = c("projectedMDC", cacheTags),
-        .functionName = "makeMDC_forProjectedMDC",
-        .cacheExtra = c(digestFiles, digestSA_RTM, digestYears)
-      )
-  })
-  projectedMDC <- SpaDES.tools::mergeRaster(projMDCs)
-
-  ## WARNING: names(projectedMDC) <- paste0('year', P(sim)$projectedFireYears) # Bad
-  ##          |-> allows for index mismatching
-  projectedMDC <- updateStackYearNames(projectedMDC, Par$projectedFireYears)
-
-  sim$projectedClimateRasters <- list("MDC" = projectedMDC)
-
-  ## CLIMATE DATA FOR gmcsDataPrep:
-  ## 1) get and unzip normals and projected annual
-  ## 2) run makeLandRCS_1950_2010normals, it returns a raster stack with two layers, normal MAT, and normal CMI
-  ## 3) assign normal CMI to sim
-  ## 4) run makeLandRCS_projectedCMIandATA, with normal MAT as an input arg. It returns a list of raster stacks (projected ATA and CMI). Assign both to sim
-  ## 5) Profit
-
-  norms <- lapply(mod$studyAreaNameShort, function(prov) {
-    cacheTags <- c(prov, currentModule(sim))
-    normalsClimateUrl <- dt[studyArea == prov & type == "hist_normals", GID]
-    normalsClimatePath <- checkPath(file.path(historicalClimatePath, "normals"), create = TRUE)
-    normalsClimateArchive <- file.path(normalsClimatePath, paste0(mod$studyAreaNameDir[[prov]], "_normals.zip"))
-
-    if (!file.exists(normalsClimateArchive)) {
-      ## need to download and extract w/o prepInputs to preserve folder structure!
-      tryCatch({
-        R.utils::withTimeout({
-          googledrive::drive_download(file = as_id(normalsClimateUrl), path = normalsClimateArchive)
-        }, timeout = 1800, onTimeout = "error")
-      },
-      error = function(e) {
-        unlink(normalsClimateArchive)
-        stop(paste0(
-          "The download of the file '", basename(normalsClimateArchive), "' was unsuccessful, ",
-          "most likely due to its size and an unstable internet connection.",
-          "Please download it manually from ",
-          paste0("https://drive.google.com/file/d/", normalsClimateUrl),
-          ", save it as ", normalsClimateArchive, "."
-        ))
-      })
-      archive::archive_extract(normalsClimateArchive, normalsClimatePath)
-    }
-
-    Cache(
-      makeLandRCS_1950_2010_normals,
-      pathToNormalRasters = file.path(normalsClimatePath, mod$studyAreaNameDir[[prov]]),
-      rasterToMatch = sim$rasterToMatch,
-      userTags = c("normals", cacheTags)
+  ## sample use historical layers for use with hindcasting
+  if (P(sim)$projectedType == "hindcast") {
+    projectedClimateRasters <- sampleHindcastLayers(
+      projectedClimateRasters,
+      years = P(sim)$projectedClimateYears
     )
-  })
-  normals <- SpaDES.tools::mergeRaster(norms)
-  sim$CMInormal <- normals[["CMInormal"]]
+  }
+  ## save updated layer names to disk where `Cache()` won't restore them;
+  ## see `climateRastersToRewrite()` above for why.
+  ## TODO: with caching on, forecast rasters are not rewritten, so their files keep the old layer
+  ##       names; only the objects (and anything restored from the cache) have the new ones.
+  toRewrite <- climateRastersToRewrite(P(sim)$projectedType)
+  if ("historical" %in% toRewrite) {
+    ## only when caching is off, so no `Cache()` here
+    historicalClimateRasters <- writeUpdatedLayerNames(historicalClimateRasters)
+  }
+  if ("projected" %in% toRewrite) {
+    projectedClimateRasters <- writeUpdatedLayerNames(projectedClimateRasters) |> Cache()
+  }
 
-  projCMIATA <- lapply(mod$studyAreaNameShort, function(prov) {
-    cacheTags <- c(prov, currentModule(sim))
-    projAnnualClimateUrl <- dt[studyArea == prov &
-                                 GCM == P(sim)$climateGCM &
-                                 SSP == P(sim)$climateSSP &
-                                 type == "proj_annual", GID]
-    projAnnualClimatePath <- file.path(projectedClimatePath, "annual") |>
-      checkPath(create = TRUE)
-    projAnnualClimateArchive <- file.path(dirname(projAnnualClimatePath),
-                                          paste0(mod$studyAreaNameDir[[prov]], "_",
-                                                 P(sim)$climateGCM, "_ssp",
-                                                 P(sim)$climateSSP, "_annual.zip"))
-
-    if (!file.exists(projAnnualClimateArchive)) {
-      ## need to download and extract w/o prepInputs to preserve folder structure!
-      googledrive::drive_download(file = googledrive::as_id(projAnnualClimateUrl), path = projAnnualClimateArchive)
-      archive::archive_extract(projAnnualClimateArchive, projAnnualClimatePath)
-    }
-
-    Cache(makeLandRCS_projectedCMIandATA,
-          normalMAT = normals[["MATnormal"]],
-          pathToFutureRasters = file.path(projAnnualClimatePath, mod$studyAreaNameDir[[prov]]),
-          years = P(sim)$projectedFireYears,
-          useCache = TRUE,
-          userTags = c("projectedCMIandATA", cacheTags))
-  }) |>
-    purrr::transpose()
-
-  sim$ATAstack <- Cache(SpaDES.tools::mergeRaster, projCMIATA[["projectedATA"]])
-  sim$CMIstack <- Cache(SpaDES.tools::mergeRaster, projCMIATA[["projectedCMI"]])
-
-  ## TODO: lighten these are a heavy tests; only check a few of the layers for now
-  # yearsToCheck <- sample.int(nlayers(sim$ATAstack), 10)
-  # stopifnot(all(unlist(lapply(sim$ATAstack[[yearsToCheck]], function(x) all(!is.na(x[]))))))
-  #
-  # yearsToCheck <- sample.int(nlayers(sim$CMIstack), 10)
-  # stopifnot(all(unlist(lapply(sim$CMIstack[[yearsToCheck]], function(x) all(!is.na(x[]))))))
+  sim$historicalClimateRasters <- historicalClimateRasters
+  sim$projectedClimateRasters <- projectedClimateRasters
 
   return(invisible(sim))
 }
 
+## For hindcasts: sample historical layers (with replacement), one per projected year, and name
+## them by those years. The same sampled layers are used for each climate variable.
+sampleHindcastLayers <- function(rasters, years) {
+  rndsmp <- sample(x = seq(terra::nlyr(rasters[[1]])), size = length(years), replace = TRUE)
+  lapply(rasters, function(x) {
+    z <- terra::subset(x, rndsmp)
+    terra::set.names(z, paste0("year", years))
+    z
+  })
+}
+
 .inputObjects <- function(sim) {
   cacheTags <- c(currentModule(sim), "function:.inputObjects")
-  dPath <- asPath(getOption("reproducible.destinationPath", dataPath(sim)), 1)
+  dPath <- inputPath(sim) |> asPath(1)
   message(currentModule(sim), ": using dataPath '", dPath, "'.")
 
   # ! ----- EDIT BELOW ----- ! #
@@ -445,25 +295,13 @@ Init <- function(sim) {
     sim$studyArea <- terra::vect(cbind(-110, 58), crs = "epsg:4326") |>
       SpaDES.tools::randomStudyArea(size = 5e10) |>
       sf::st_as_sf() |>
-      sf::st_transform(mod$targetCRS)
+      sf::st_transform(mod$targetCRS) |>
+      sf::st_buffer(P(sim)$bufferDist)
   }
 
-  if (!suppliedElsewhere("studyAreaReporting", sim)) {
-    sim$studyAreaReporting <- sim$studyArea
-  }
-
-  if (!suppliedElsewhere("studyArea", sim)) {
-    ## NOTE: studyArea and studyAreaLarge are the same [buffered] area
-    sim$studyArea <- sf::st_buffer(sim$studyArea, P(sim)$bufferDist)
-  }
-
-  if (!suppliedElsewhere("studyAreaLarge", sim)) {
-    sim$studyAreaLarge <- sim$studyArea
-  }
-
-  if (is.na(P(sim)$studyAreaName)) {
+  if (is.na(P(sim)$.studyAreaName)) {
     ## use unique hash as study area name
-    P(sim, "studyAreaName") <- studyAreaName(sim$studyArea)
+    P(sim, ".studyAreaName") <- studyAreaName(sim$studyArea)
   }
 
   if (!suppliedElsewhere("rasterToMatch", sim)) {
@@ -471,29 +309,62 @@ Init <- function(sim) {
                                year = 2005,
                                studyArea = sim$studyArea,
                                destinationPath = dPath,
-                               useCache = P(sim)$.useCache,
+                               useCache = ".inputObjects" %in% P(sim)$.useCache,
                                filename2 = NULL)
-    writeRaster(sim$rasterToMatch, file.path(dPath, paste0(P(sim)$studyAreaName, "_rtm.tif")),
+    writeRaster(sim$rasterToMatch, file.path(dPath, paste0(P(sim)$.studyAreaName, "_rtm.tif")),
                 datatype = "INT1U", overwrite = TRUE)
   }
 
-  if (!suppliedElsewhere("rasterToMatchLarge", sim)) {
-    sim$rasterToMatchLarge <- Cache(LandR::prepInputsLCC,
-                                    year = 2005,
-                                    studyArea = sim$studyAreaLarge,
-                                    destinationPath = dPath,
-                                    useCache = P(sim)$.useCache,
-                                    filename2 = NULL)
-    writeRaster(sim$rasterToMatchLarge,  file.path(dPath, paste0(P(sim)$studyAreaName, "_rtml.tif")),
-                datatype = "INT1U", overwrite = TRUE)
+  if (!suppliedElsewhere("climateVariables", sim)) {
+    historical_prd <- P(sim)$historicalClimatePeriod
+    historical_yrs <- P(sim)$historicalClimateYears
+    projected_yrs <- P(sim)$projectedClimateYears
+    projected_prd <- P(sim)$projectedClimatePeriod ## currently not used
+
+    if (P(sim)$projectedType == "forecast") {
+      sim$climateVariables <- list(
+        historical_CMI_normal = list(
+          vars = "historical_CMI_normal",
+          fun = quote(calcAsIs),
+          .dots = list(historical_period = historical_prd)
+        ),
+        historical_MDC = list(
+          vars = c(sprintf("historical_PPT%02d", 4:9), sprintf("historical_Tmax%02d", 4:9)),
+          fun = quote(calcMDC),
+          .dots = list(historical_years = historical_yrs)
+        ),
+        projected_MDC = list(
+          vars = c(sprintf("future_PPT%02d", 4:9), sprintf("future_Tmax%02d", 4:9)),
+          fun = quote(calcMDC),
+          .dots = list(future_years = projected_yrs)
+        )
+      )
+    } else if (P(sim)$projectedType == "hindcast") {
+      sim$climateVariables <- list(
+        historical_CMI_normal = list(
+          vars = "historical_CMI_normal",
+          fun = quote(calcAsIs),
+          .dots = list(historical_period = historical_prd)
+        ),
+        historical_MDC = list(
+          vars = c(sprintf("historical_PPT%02d", 4:9), sprintf("historical_Tmax%02d", 4:9)),
+          fun = quote(calcMDC),
+          .dots = list(historical_years = historical_yrs)
+        ),
+        ## projected climate variables will be prepared from historical and sampled below
+        projected_CMI = list(
+          vars = "historical_CMI",
+          fun = quote(calcAsIs),
+          .dots = list(historical_years = historical_yrs)
+        ),
+        projected_MDC = list(
+          vars = c(sprintf("historical_PPT%02d", 4:9), sprintf("historical_Tmax%02d", 4:9)),
+          fun = quote(calcMDC),
+          .dots = list(historical_years = historical_yrs)
+        )
+      )
+    }
   }
 
-  if (!suppliedElsewhere("rasterToMatchReporting", sim)) {
-    sim$rasterToMatchReporting <- Cache(maskTo, sim$rasterToMatch, maskTo = sim$studyAreaReporting)
-    writeRaster(sim$rasterToMatchReporting,  file.path(dPath, paste0(P(sim)$studyAreaName, "_rtmr.tif")),
-                datatype = "INT1U", overwrite = TRUE)
-  }
-
-  # ! ----- STOP EDITING ----- ! #
   return(invisible(sim))
 }

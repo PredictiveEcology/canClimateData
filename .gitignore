@@ -3,3 +3,6 @@
 .RData
 .Ruserdata
 *.html
+.secrets
+
+canClimateData2.Rmd
