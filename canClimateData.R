@@ -17,7 +17,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = deparse(list("README.md", "canClimateData.Rmd")),
-  reqdPkgs = list("archive", "digest", "geodata", "googledrive", "purrr",
+  reqdPkgs = list("archive", "digest", "geodata", "googledrive", "httr2", "purrr",
                   "R.utils", "sf", "spatialEco", "terra",
                   "dbplyr", # needed for prepClimateLayers
                   "PredictiveEcology/climateData@development (>= 2.2.3.9008)",
