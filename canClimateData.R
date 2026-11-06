@@ -12,7 +12,7 @@ defineModule(sim, list(
     person("Tati", "Micheletti", email = "tati.micheletti@gmail.com", role = "ctb")
   ),
   childModules = character(0),
-  version = list(canClimateData = "1.1.1.9000"),
+  version = list(canClimateData = "1.1.1.9001"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -20,7 +20,7 @@ defineModule(sim, list(
   reqdPkgs = list("archive", "digest", "geodata", "googledrive", "httr2", "purrr",
                   "R.utils", "sf", "spatialEco", "terra",
                   "dbplyr", # needed for prepClimateLayers
-                  "PredictiveEcology/climateData@development (>= 2.2.3.9008)",
+                  "PredictiveEcology/climateData@development (>= 2.2.3.9011)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9046)",
                   "PredictiveEcology/LandR@development (>= 1.1.0.9064)",
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9060)",
@@ -38,7 +38,7 @@ defineModule(sim, list(
     defineParameter("historicalClimatePeriod", "character", c("1951_1980", "1981_2010"), NA, NA,
                     paste("period to use for historical climate normals",
                           "if `climateVariables` not supplied.")),
-    defineParameter("historicalClimateYears", "numeric", 1991:2022, NA, NA,
+    defineParameter("historicalClimateYears", "numeric", 1991:2025, NA, NA,
                     paste("range of years captured by the historical climate data",
                           "if `climateVariables` not supplied.")),
     defineParameter("outputDir", "character", NA_character_, NA, NA,
@@ -212,7 +212,12 @@ Init <- function(sim) {
     rasterToMatch = sim$rasterToMatch,
     currentModuleName = "canClimateData"
   ) |>
-    Cache(omitArgs = c("srcdir", "dstdir"), useCloud = Par$.useCloud) ## TODO: improve use of cache
+    Cache(
+      omitArgs = c("srcdir", "dstdir"),
+      ## a new data release replaces the archives behind the same arguments
+      .cacheExtra = climateData::climateDataRelease()$release_id,
+      useCloud = Par$.useCloud
+    ) ## TODO: improve use of cache
 
   ## rename list elements and layers to match expected names downstream
   names(climateRasters) <- names(sim$climateVariables)

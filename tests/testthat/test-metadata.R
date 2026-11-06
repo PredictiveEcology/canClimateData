@@ -33,6 +33,13 @@ test_that("outputs are the expected names and classes", {
   )
 })
 
+## climateData's v7.70 data release runs historical years to 2025.
+test_that("historicalClimateYears defaults to 1991-2025", {
+  md <- SpaDES.core::moduleMetadata(module = moduleName, path = modulePath)
+  p <- md$parameters
+  expect_equal(p$default[[which(p$paramName == "historicalClimateYears")]], 1991:2025)
+})
+
 test_that("parameters are the expected names", {
   md <- SpaDES.core::moduleMetadata(module = moduleName, path = modulePath)
   expect_identical(
