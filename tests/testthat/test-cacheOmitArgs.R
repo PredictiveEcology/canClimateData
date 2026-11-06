@@ -29,3 +29,13 @@ test_that("Init(): omitArgs of the cached prepClimateLayers() call are its forma
                            paste(setdiff(omitArgs, formalArgs(climateData::prepClimateLayers)),
                                  collapse = ", ")))
 })
+
+## A new climateData data release (e.g. "cna-v7.70-3arcmin") replaces the archives behind the
+## same variables, years and study area, so the cache key must include it, or layers built from
+## the earlier archives come back from the cache.
+test_that("Init(): the cached prepClimateLayers() call is keyed on the climate data release", {
+  exprs <- parse(file.path(moduleRoot, paste0(moduleName, ".R")), keep.source = FALSE)
+  calls <- unlist(lapply(exprs, cacheCallsOf, fn = "prepClimateLayers"), recursive = FALSE)
+  expect_length(calls, 1L)
+  expect_identical(eval(calls[[1]]$.cacheExtra), climateData::climateDataRelease()$release_id)
+})
