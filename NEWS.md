@@ -1,5 +1,14 @@
 # canClimateData (development version)
 
+- Requires climateData >= 2.2.3.9012, whose tile index is the `cna-v7.70-3arcmin` data release:
+  every archive rebuilt with ClimateNA v7.70, historical years to 2025, and radiation (`rsds`)
+  for every year and scenario (climateData#39).
+- The `Cache()` of `prepClimateLayers()` in `Init()` includes `climateDataRelease()$release_id`
+  in its key. A new data release replaces the archives behind the same variables, years and
+  study area; without it, layers built from the earlier archives came back from the cache.
+- `historicalClimateYears` now defaults to `1991:2025` (was `1991:2022`). Default runs use the
+  2023-2025 data, so their historical climate layers change.
+
 # canClimateData 1.1.1
 
 - Fixed: `projectedType = "hindcast"` failed in `Init()` with "object 'projected_yrs' not found",
