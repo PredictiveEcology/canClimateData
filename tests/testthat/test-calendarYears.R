@@ -23,18 +23,21 @@ test_that("init stops when the run starts before the climate years this module i
                "times are model years 1950-2020.*cover 1991-2100.*historicalClimateYears")
 })
 
-test_that("with a climateYear (a run in model years, e.g. NRV), the climate year is checked, not start(sim)", {
+test_that("a rerun with the run's climateYearRecord checks the climate years it used, not times", {
   rtm <- terra::rast(nrows = 2, ncols = 2, vals = 1L, crs = "EPSG:3978")
   sa <- sf::st_as_sf(terra::as.polygons(rtm))
-  run <- function(climateYear) {
+  rec <- data.table::data.table(simYear = c(2719, 2720, 2721), climateYear = c(2001, 1987, 2001))
+  run <- function(objs) {
     sim <- suppressMessages(SpaDES.core::simInit(
-      times = list(start = 2720, end = 2820), modules = moduleName, paths = testPaths,
-      objects = list(studyArea = sa, rasterToMatch = rtm, climateVariables = list(dummy = list()),
-                     climateYear = climateYear)))
+      times = list(start = 2720, end = 2720), modules = moduleName, paths = testPaths,
+      params = list(canClimateData = list(historicalClimateYears = 1991:2022, projectedClimateYears = integer(0))),
+      objects = c(list(studyArea = sa, rasterToMatch = rtm, climateYearRecord = rec), objs)))
     tryCatch({suppressMessages(SpaDES.core::spades(sim, debug = FALSE)); ""},
              error = function(e) conditionMessage(e))
   }
-  ## stops later, on the dummy climateVariables, but not on the years
-  expect_false(grepl("model years", run(2014)))
-  expect_match(run(1800), "model years 1800-1800")
+  ## built from params: 1987 (the climate year of 2720 only) is not among them
+  expect_match(run(list()), "climate years 1987 for times 2720-2720")
+  ## supplied climateVariables: years not known here, so no year check (it stops later, on the dummy)
+  err <- run(list(climateVariables = list(dummy = list())))
+  expect_false(grepl("climate years|model years", err))
 })
