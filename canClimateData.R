@@ -17,10 +17,11 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = deparse(list("README.md", "canClimateData.Rmd")),
+  loadOrder = list(before = "climateYear"),
   reqdPkgs = list("archive", "digest", "geodata", "googledrive", "purrr",
                   "R.utils", "sf", "spatialEco", "terra",
                   "dbplyr", # needed for prepClimateLayers
-                  "PredictiveEcology/climateData@development (>= 2.2.3.9009)",
+                  "PredictiveEcology/climateData@modsForFireSense (>= 2.2.3.9011)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9046)",
                   "PredictiveEcology/LandR@development (>= 1.1.0.9064)",
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9060)",
@@ -94,6 +95,12 @@ defineModule(sim, list(
                        "are set by module parameters and must be identical for all variables.",
                        "See also <https://climatena.ca/Help2#_var> for all available climate variables."),
                        sourceURL = NA),
+    expectsInput("climateYear", "numeric",
+                 desc = paste("Optional: the calendar year of climate the simulation is at (from the",
+                              "`climateYear` module), when simulation years are not calendar years",
+                              "(e.g. NRV runs). When present, it, not `start(sim)`, must be a year the",
+                              "climate data cover."),
+                 sourceURL = NA),
     expectsInput("rasterToMatch", "SpatRaster",
                  desc = "template raster corresponding to `studyArea`.", sourceURL = NA),
     expectsInput("studyArea", "sf",
@@ -149,11 +156,16 @@ Init <- function(sim) {
   ## `projectedClimateYears`, so the run's start must fall within those. A supplied
   ## `climateVariables` has years this module cannot read, so only calendar years are required.
   ## (`.inputObjects` sets the flag; it does not run when every input was supplied.)
+  ## A run whose years are not calendar years (NRV) maps them to climate years (`climateYear`
+  ## module); then the climate year it is at is what must be a calendar year.
   fromParams <- isTRUE(mod$climateVariablesFromParams)
-  checkCalendarYears(start(sim), end(sim), module = "canClimateData",
+  yrs <- if (is.null(sim$climateYear)) c(start(sim), end(sim)) else rep(sim$climateYear, 2)
+  checkCalendarYears(yrs[1], yrs[2], module = "canClimateData",
                      years = if (fromParams)
                        c(P(sim)$historicalClimateYears, P(sim)$projectedClimateYears),
-                     hint = if (fromParams) {
+                     hint = if (!is.null(sim$climateYear)) {
+                       "That is `climateYear`, the climate year this run is at."
+                     } else if (fromParams) {
                        "Set `times` inside those years, or change `historicalClimateYears`/`projectedClimateYears`."
                      } else {
                        "`climateVariables` was supplied, so its years are not known here: set `times` to calendar years."
