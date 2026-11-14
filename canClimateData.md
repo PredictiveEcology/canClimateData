@@ -1,6 +1,6 @@
 ---
 title: "canClimateData Manual"
-subtitle: "v.1.1.0.9000"
+subtitle: "v.1.1.1.9000"
 date: "Last updated: 2026-11-14"
 output:
   bookdown::html_document2:

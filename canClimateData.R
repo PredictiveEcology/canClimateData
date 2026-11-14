@@ -12,13 +12,13 @@ defineModule(sim, list(
     person("Tati", "Micheletti", email = "tati.micheletti@gmail.com", role = "ctb")
   ),
   childModules = character(0),
-  version = list(canClimateData = "1.1.0.9000"),
+  version = list(canClimateData = "1.1.1.9000"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = deparse(list("README.md", "canClimateData.Rmd")),
   loadOrder = list(before = "climateYear"),
-  reqdPkgs = list("archive", "digest", "geodata", "googledrive", "purrr",
+  reqdPkgs = list("archive", "digest", "geodata", "googledrive", "httr2", "purrr",
                   "R.utils", "sf", "spatialEco", "terra",
                   "dbplyr", # needed for prepClimateLayers
                   "PredictiveEcology/climateData@modsForFireSense (>= 2.2.3.9011)",
@@ -143,13 +143,14 @@ doEvent.canClimateData = function(sim, eventTime, eventType) {
 ## event functions ----------------------------------------------------------------------------
 
 ## Which of "historical"/"projected" climate raster stacks need to be rewritten to disk
-## with their updated layer names before caching. `historicalClimateRasters` is never
-## subset, so it never needs rewriting: `reproducible::Cache()` already restores a
-## file-backed SpatRaster's layer names from its cache tags. `projectedClimateRasters`
-## needs rewriting only under hindcast, where it is subset with replacement (repeated,
-## out-of-order layers) and `Cache()` cannot reliably restore that on its own when the
-## layer count is unchanged.
-climateRastersToRewrite <- function(projectedType) {
+## with their updated layer names. With caching off, `Cache()` is skipped and nothing restores
+## the renamed layers, so both are written. With caching on, `reproducible::Cache()` restores a
+## file-backed SpatRaster's layer names from its cache tags, so only `projectedClimateRasters`
+## under hindcast is written: it is subset with replacement (repeated, out-of-order layers),
+## which `Cache()` cannot reliably restore when the layer count is unchanged.
+climateRastersToRewrite <- function(projectedType,
+                                    useCache = getOption("reproducible.useCache", TRUE)) {
+  if (isFALSE(as.logical(useCache))) return(c("historical", "projected"))
   if (identical(projectedType, "hindcast")) "projected" else character(0)
 }
 
@@ -179,6 +180,20 @@ climateVarsForRecord <- function(climateVariables, record, simYears) {
     if (!is.null(v$.dots$historical_years)) v$.dots$historical_years <- climYrs[climYrs <= latest]
     if (!is.null(v$.dots$future_years)) v$.dots$future_years <- climYrs[climYrs > latest]
     v
+  })
+}
+
+## Write each raster to a new file so the file carries the updated layer names.
+## Multi-layer stacks are written band-interleaved in 256 x 256 tiles, the layout climateData#33
+## proposes for climateData::prepClimateLayers() (its `climateStackGdalOptions()`), so reading one
+## year's layer does not decompress every layer. With GDAL's default (pixel-interleaved 1-row
+## strips), that read took 1.6 s instead of 0.04 s for a 90-layer, 1000 x 1000 test stack.
+writeUpdatedLayerNames <- function(rasters,
+                                   gdal = c("INTERLEAVE=BAND", "TILED=YES",
+                                            "BLOCKXSIZE=256", "BLOCKYSIZE=256")) {
+  lapply(rasters, function(x) {
+    terra::writeRaster(x, .suffix(terra::sources(x), "updated"), overwrite = TRUE,
+                       gdal = if (terra::nlyr(x) > 1) gdal)
   })
 }
 
@@ -293,29 +308,39 @@ Init <- function(sim) {
 
   ## sample use historical layers for use with hindcasting
   if (P(sim)$projectedType == "hindcast") {
-    ## use same (sampled) years for each climate variable!
-    rndsmp <- sample(x = seq(terra::nlyr(projectedClimateRasters[[1]])),
-                     size = length(projected_yrs),
-                     replace = TRUE)
-    projectedClimateRasters <- lapply(projectedClimateRasters,
-                                      FUN = function(x, n_year = rndsmp, n_name = projected_yrs) {
-      z <- terra::subset(x, n_year)
-      terra::set.names(z, paste0("year", n_name))
-      return(z)
-    })
+    projectedClimateRasters <- sampleHindcastLayers(
+      projectedClimateRasters,
+      years = P(sim)$projectedClimateYears
+    )
   }
-  ## save updated layer names to disk only where `Cache()` cannot reliably restore them
-  ## on its own; see `climateRastersToRewrite()` above for why.
-  if ("projected" %in% climateRastersToRewrite(P(sim)$projectedType)) {
-    projectedClimateRasters <- lapply(projectedClimateRasters, function(x) {
-      terra::writeRaster(x, .suffix(terra::sources(x), "updated"), overwrite = TRUE)
-    }) |> Cache()
+  ## save updated layer names to disk where `Cache()` won't restore them;
+  ## see `climateRastersToRewrite()` above for why.
+  ## TODO: with caching on, forecast rasters are not rewritten, so their files keep the old layer
+  ##       names; only the objects (and anything restored from the cache) have the new ones.
+  toRewrite <- climateRastersToRewrite(P(sim)$projectedType)
+  if ("historical" %in% toRewrite) {
+    ## only when caching is off, so no `Cache()` here
+    historicalClimateRasters <- writeUpdatedLayerNames(historicalClimateRasters)
+  }
+  if ("projected" %in% toRewrite) {
+    projectedClimateRasters <- writeUpdatedLayerNames(projectedClimateRasters) |> Cache()
   }
 
   sim$historicalClimateRasters <- historicalClimateRasters
   sim$projectedClimateRasters <- projectedClimateRasters
 
   return(invisible(sim))
+}
+
+## For hindcasts: sample historical layers (with replacement), one per projected year, and name
+## them by those years. The same sampled layers are used for each climate variable.
+sampleHindcastLayers <- function(rasters, years) {
+  rndsmp <- sample(x = seq(terra::nlyr(rasters[[1]])), size = length(years), replace = TRUE)
+  lapply(rasters, function(x) {
+    z <- terra::subset(x, rndsmp)
+    terra::set.names(z, paste0("year", years))
+    z
+  })
 }
 
 .inputObjects <- function(sim) {
