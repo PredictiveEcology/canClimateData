@@ -1,7 +1,7 @@
 ---
 title: "canClimateData Manual"
-subtitle: "v.1.0.3"
-date: "Last updated: 2024-07-29"
+subtitle: "v.1.1.0.9000"
+date: "Last updated: 2026-11-14"
 output:
   bookdown::html_document2:
     toc: true
@@ -47,7 +47,7 @@ Currently supports study areas across Canada, for some CMIP6 climate scenarios (
 
 **Available data sets:**
 
-<img src="../../../../../../../../mnt/shared_cache/renv/cache/v5/R-4.3/x86_64-pc-linux-gnu/climateData/2.2.2/ce96a12a057e6449fa6bdc7af8ec6758/climateData/extdata/tile_map.png" width="852" />
+<img src="../../_temp/Library/climateData/extdata/tile_map.png" alt="" width="852" />
 
 
 ``` r
@@ -64,7 +64,7 @@ available("historical")[["years"]]
 ##  [76] 1976 1977 1978 1979 1980 1981 1982 1983 1984 1985 1986 1987 1988 1989 1990
 ##  [91] 1991 1992 1993 1994 1995 1996 1997 1998 1999 2000 2001 2002 2003 2004 2005
 ## [106] 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020
-## [121] 2021 2022
+## [121] 2021 2022 2023 2024
 ```
 
 ``` r
@@ -110,7 +110,7 @@ Table \@ref(tab:moduleInputs-canClimateData) shows the full list of module input
 
 See `?climateData::prepClimateLayers` for examples constructing a custom `climateVariables` object to use to add arbitrary climate variables to the output lists of climate rasters.
 
-<table class="table" style="color: black; margin-left: auto; margin-right: auto;">
+<table class="table" style="margin-left: auto; margin-right: auto;">
 <caption>(\#tab:moduleInputs-canClimateData)(\#tab:moduleInputs-canClimateData)List of (ref:canClimateData) input objects and their description.</caption>
  <thead>
   <tr>
@@ -124,7 +124,13 @@ See `?climateData::prepClimateLayers` for examples constructing a custom `climat
   <tr>
    <td style="text-align:left;"> climateVariables </td>
    <td style="text-align:left;"> list </td>
-   <td style="text-align:left;"> a list, named by climate variable using 'projected_' or 'historical_' prefixes, with each list element containing a list of three arguments: vars - the raw variables used to derive the target variable, fun - the quoted function used to derive the target variable, where 'quote(calcAsIs)' denotes target variables that ARE the raw variable, and dots - additional arguments passed to 'fun'. See the .inputObjects for examples of how to build this object and ?climateData::prepClimateLayers for how it is used . The GCM, SSP, and selected years, whether projected or historical, are set by module parameters and must be identical for all variables </td>
+   <td style="text-align:left;"> a list, named by climate variable using `'projected_'` or `'historical_'` prefixes, with each list element containing a list of three arguments: `vars` - the raw variables used to derive the target variable; `fun` - the quoted function used to derive the target variable, where `'quote(calcAsIs)'` denotes target variables that ARE the raw variable; and `dots` - additional arguments passed to `fun`. See `.inputObjects` for examples of how to build this object, and `?climateData::prepClimateLayers` for how it is used. The GCM, SSP, and selected years, whether projected or historical, are set by module parameters and must be identical for all variables. See also &lt;https://climatena.ca/Help2#_var&gt; for all available climate variables. </td>
+   <td style="text-align:left;"> NA </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> climateYearRecord </td>
+   <td style="text-align:left;"> data.table </td>
+   <td style="text-align:left;"> Optional, for rerunning this module on a finished run whose simulation years are not calendar years (e.g. NRV): that run's record (`simYear`, `climateYear`) of the climate year used in each simulation year, from the `climateYear` module. When supplied, those climate years, not `times`, are checked against the years this module prepares. In a normal run `climateYear` writes it after this module's `init`, so it is not read. </td>
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
@@ -147,7 +153,7 @@ See `?climateData::prepClimateLayers` for examples constructing a custom `climat
 Table \@ref(tab:moduleParams-canClimateData) shows the full list of module parameters.
 
 
-<table class="table" style="color: black; margin-left: auto; margin-right: auto;">
+<table class="table" style="margin-left: auto; margin-right: auto;">
 <caption>(\#tab:moduleParams-canClimateData)(\#tab:moduleParams-canClimateData)List of (ref:canClimateData) parameters and their description.</caption>
  <thead>
   <tr>
@@ -157,6 +163,7 @@ Table \@ref(tab:moduleParams-canClimateData) shows the full list of module param
    <th style="text-align:left;"> min </th>
    <th style="text-align:left;"> max </th>
    <th style="text-align:left;"> paramDesc </th>
+   <th style="text-align:left;"> cacheKey </th>
   </tr>
  </thead>
 <tbody>
@@ -167,6 +174,7 @@ Table \@ref(tab:moduleParams-canClimateData) shows the full list of module param
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Distance (m) to buffer `studyArea` and `rasterToMatch` to mitigate edge effects for simulation. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> climateGCM </td>
@@ -175,6 +183,7 @@ Table \@ref(tab:moduleParams-canClimateData) shows the full list of module param
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Global Circulation Model to use for climate projections: currently 'CanESM5' or 'CNRM-ESM2-1'. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> climateSSP </td>
@@ -183,6 +192,7 @@ Table \@ref(tab:moduleParams-canClimateData) shows the full list of module param
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> SSP emissions scenario for `climateGCM`: one of 245, 370, or 585. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> historicalClimatePeriod </td>
@@ -191,6 +201,7 @@ Table \@ref(tab:moduleParams-canClimateData) shows the full list of module param
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> period to use for historical climate normals if `climateVariables` not supplied. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> historicalClimateYears </td>
@@ -199,6 +210,7 @@ Table \@ref(tab:moduleParams-canClimateData) shows the full list of module param
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> range of years captured by the historical climate data if `climateVariables` not supplied. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> outputDir </td>
@@ -207,6 +219,7 @@ Table \@ref(tab:moduleParams-canClimateData) shows the full list of module param
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Directory path for prepared climate data rasters. User should specify a shared directory (e.g., when running multiple simulation replicates) to avoid multiple copies of the climate data. If not specified by the user, a subdirectory of the simulation output directory will be used (i.e., `file.path(outputPath(sim), 'climate')`. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> projectedClimatePeriod </td>
@@ -215,14 +228,16 @@ Table \@ref(tab:moduleParams-canClimateData) shows the full list of module param
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> period to use for projected climate normals if `climateVariables` not supplied. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> projectedClimateYears </td>
    <td style="text-align:left;"> numeric </td>
-   <td style="text-align:left;"> 2011, 20.... </td>
+   <td style="text-align:left;"> 2017, 20.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> range of years captured by the projected climate data if `climateVariables` not supplied. </td>
+   <td style="text-align:left;"> range of years captured by the projected climate data if `climateVariables` not supplied. Starts in 2017 because the projected archive for tile 39 (CNRM-ESM2-1 ssp370) lacks 2013-2016, and observed climate now covers 1901-2024, so earlier projections are not needed. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> projectedType </td>
@@ -231,6 +246,7 @@ Table \@ref(tab:moduleParams-canClimateData) shows the full list of module param
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> one of 'forecast' or 'hindcast' to prepare either projected future, or sampled historical data for hindcast studies, respectively. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> quickCheck </td>
@@ -239,6 +255,7 @@ Table \@ref(tab:moduleParams-canClimateData) shows the full list of module param
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> `prepClimateData` uses `prepInputs` internally; set this to `TRUE` to avoid the slow process of digesting potentially MANY files. This will use `file.size` only, if `TRUE`. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .studyAreaName </td>
@@ -247,6 +264,7 @@ Table \@ref(tab:moduleParams-canClimateData) shows the full list of module param
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> User-defined label for the current study area. If `NA`, a hash of `studyArea` will be used. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .plotInitialTime </td>
@@ -255,6 +273,7 @@ Table \@ref(tab:moduleParams-canClimateData) shows the full list of module param
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Describes the simulation time at which the first plot event should occur. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .plotInterval </td>
@@ -263,6 +282,7 @@ Table \@ref(tab:moduleParams-canClimateData) shows the full list of module param
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Describes the simulation time interval between plot events. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .saveInitialTime </td>
@@ -271,6 +291,7 @@ Table \@ref(tab:moduleParams-canClimateData) shows the full list of module param
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Describes the simulation time at which the first save event should occur. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .saveInterval </td>
@@ -279,6 +300,7 @@ Table \@ref(tab:moduleParams-canClimateData) shows the full list of module param
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> This describes the simulation time interval between save events. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .useCache </td>
@@ -287,6 +309,7 @@ Table \@ref(tab:moduleParams-canClimateData) shows the full list of module param
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
 </tbody>
 </table>
@@ -299,7 +322,7 @@ This module consists of a single `init` event that performs all data preparation
 
 Description of the module outputs (Table \@ref(tab:moduleOutputs-canClimateData)).
 
-<table class="table" style="color: black; margin-left: auto; margin-right: auto;">
+<table class="table" style="margin-left: auto; margin-right: auto;">
 <caption>(\#tab:moduleOutputs-canClimateData)(\#tab:moduleOutputs-canClimateData)List of (ref:canClimateData) outputs and their description.</caption>
  <thead>
   <tr>
