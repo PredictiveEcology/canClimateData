@@ -135,11 +135,27 @@ doEvent.canClimateData = function(sim, eventTime, eventType) {
 ## the renamed layers, so both are written. With caching on, `reproducible::Cache()` restores a
 ## file-backed SpatRaster's layer names from its cache tags, so only `projectedClimateRasters`
 ## under hindcast is written: it is subset with replacement (repeated, out-of-order layers),
-## which `Cache()` cannot reliably restore when the layer count is unchanged.
+## which `Cache()` cannot reliably restore when the layer count is unchanged. The tags are in the
+## cache, not in the files, so the stacks that are not rewritten get their names written into
+## their files in place (`writeLayerNamesInPlace()`).
 climateRastersToRewrite <- function(projectedType,
                                     useCache = getOption("reproducible.useCache", TRUE)) {
   if (isFALSE(as.logical(useCache))) return(c("historical", "projected"))
   if (identical(projectedType, "hindcast")) "projected" else character(0)
+}
+
+## Write each raster's layer names into the file behind it, in place (no copy), when the file's
+## names differ; a file already carrying them is not touched, so it changes once, on the first
+## run, and later cache keys that digest it stay the same. In-memory rasters and rasters from
+## several files are left as they are.
+writeLayerNamesInPlace <- function(rasters) {
+  lapply(rasters, function(x) {
+    src <- terra::sources(x)
+    if (length(src) == 1 && nzchar(src) && !identical(names(terra::rast(src)), names(x))) {
+      terra::update(x, names = TRUE)
+    }
+    x
+  })
 }
 
 ## Write each raster to a new file so the file carries the updated layer names.
@@ -251,15 +267,17 @@ Init <- function(sim) {
   }
   ## save updated layer names to disk where `Cache()` won't restore them;
   ## see `climateRastersToRewrite()` above for why.
-  ## TODO: with caching on, forecast rasters are not rewritten, so their files keep the old layer
-  ##       names; only the objects (and anything restored from the cache) have the new ones.
   toRewrite <- climateRastersToRewrite(P(sim)$projectedType)
   if ("historical" %in% toRewrite) {
     ## only when caching is off, so no `Cache()` here
     historicalClimateRasters <- writeUpdatedLayerNames(historicalClimateRasters)
+  } else {
+    historicalClimateRasters <- writeLayerNamesInPlace(historicalClimateRasters)
   }
   if ("projected" %in% toRewrite) {
     projectedClimateRasters <- writeUpdatedLayerNames(projectedClimateRasters) |> Cache()
+  } else {
+    projectedClimateRasters <- writeLayerNamesInPlace(projectedClimateRasters)
   }
 
   sim$historicalClimateRasters <- historicalClimateRasters

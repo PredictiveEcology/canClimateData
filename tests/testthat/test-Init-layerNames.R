@@ -38,13 +38,10 @@ test_that("Init() with caching on gives the renamed layers on a first and a cach
     }
   }
 
-  ## TODO (see Init()): with caching on, forecast rasters are not rewritten, so their files keep
-  ##       the old layer names. Once that is fixed, this check runs instead of skipping.
   fileNamesOK <- unlist(lapply(names(expectedNames), function(obj) {
     vapply(names(expectedNames[[obj]]), function(v) {
       identical(fileLayerNames(sims[[2]][[obj]][[v]]), expectedNames[[obj]][[v]])
     }, logical(1))
   }))
-  skip_if_not(all(fileNamesOK), "TODO: with caching on, forecast files keep the old layer names")
   expect_true(all(fileNamesOK))
 })

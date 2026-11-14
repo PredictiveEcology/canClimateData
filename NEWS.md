@@ -1,5 +1,7 @@
 # canClimateData (development version)
 
+- Fixed: with caching on, the climate raster files kept the layer names `prepClimateLayers()` gave them (e.g. `MDC_historical_1991`); only the objects had the new names (`year1991`). `Init()` now writes the new names into the files it does not rewrite, in place (`terra::update()`), once, so no second copy is made.
+
 # canClimateData 1.1.1
 
 - Fixed: `projectedType = "hindcast"` failed in `Init()` with "object 'projected_yrs' not found",

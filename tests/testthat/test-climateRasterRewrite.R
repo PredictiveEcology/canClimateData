@@ -77,3 +77,24 @@ test_that("Cache() restores a renamed file-backed raster's layer names without a
   expect_identical(terra::names(r2), "renamedLayer")
   expect_equal(terra::values(r2), terra::values(r1))
 })
+
+test_that("writeLayerNamesInPlace() writes the names into the same file, once", {
+  f <- withr::local_tempfile(fileext = ".tif")
+  terra::writeRaster(terra::rast(nrows = 2, ncols = 2, nlyrs = 2, vals = 1:8), f, overwrite = TRUE)
+  r <- terra::rast(f)
+  terra::set.names(r, c("year2001", "year2002"))
+
+  out <- writeLayerNamesInPlace(list(MDC = r))
+  expect_identical(terra::sources(out$MDC), f) ## no copy
+  expect_identical(names(terra::rast(f)), c("year2001", "year2002"))
+  expect_equal(terra::values(out$MDC), terra::values(r))
+
+  md5 <- tools::md5sum(f)
+  writeLayerNamesInPlace(list(MDC = terra::rast(f)))
+  expect_identical(tools::md5sum(f), md5) ## names already there: file not touched
+
+  m <- terra::rast(nrows = 2, ncols = 2, nlyrs = 2, vals = 1:8)
+  terra::set.names(m, c("a", "b"))
+  expect_no_warning(out <- writeLayerNamesInPlace(list(m = m))) ## in memory: left as is
+  expect_identical(names(out$m), c("a", "b"))
+})
