@@ -18,6 +18,7 @@ test_that("inputs are the expected names and classes", {
   expect_identical(
     inputs[order(names(inputs))],
     c(climateVariables = "list",
+      climateYearRecord = "data.table",
       rasterToMatch    = "SpatRaster",
       studyArea        = "sf")
   )
@@ -43,4 +44,10 @@ test_that("parameters are the expected names", {
            "historicalClimateYears", "outputDir", "projectedClimatePeriod",
            "projectedClimateYears", "projectedType", "quickCheck"))
   )
+})
+
+test_that("projected climate years start in 2017", {
+  md <- SpaDES.core::moduleMetadata(module = moduleName, path = modulePath)
+  pars <- stats::setNames(md$parameters$default, md$parameters$paramName)
+  expect_identical(pars[["projectedClimateYears"]], 2017:2100)
 })

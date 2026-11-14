@@ -11,6 +11,7 @@ rm(e)
 ## a real run gets these from the module's reqdPkgs
 Cache <- reproducible::Cache
 .suffix <- reproducible::.suffix
+checkCalendarYears <- climateData::checkCalendarYears
 
 ## Run the module's real Init() on small file-backed rasters, with stand-ins for the SpaDES accessors
 ## and for climateData::prepClimateLayers(). The stand-in layer names end in the year or period, as
@@ -28,6 +29,8 @@ runInit <- function(path, projectedType = "forecast", params = list(), calls = n
   mocks <- new.env(parent = environment(Init))
   mocks$P <- function(sim, ...) sim$params
   mocks$inputPath <- mocks$outputPath <- function(sim) path
+  mocks$start <- function(sim) 2011
+  mocks$end <- function(sim) 2012
   mocks$checkPath <- function(path, create = FALSE) {
     dir.create(path, recursive = TRUE, showWarnings = FALSE)
     path
