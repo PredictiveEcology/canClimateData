@@ -18,6 +18,7 @@ test_that("inputs are the expected names and classes", {
   expect_identical(
     inputs[order(names(inputs))],
     c(climateVariables = "list",
+      climateYearRecord = "data.table",
       rasterToMatch    = "SpatRaster",
       studyArea        = "sf")
   )

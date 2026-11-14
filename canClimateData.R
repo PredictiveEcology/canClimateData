@@ -17,10 +17,11 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = deparse(list("README.md", "canClimateData.Rmd")),
+  loadOrder = list(before = "climateYear"),
   reqdPkgs = list("archive", "digest", "geodata", "googledrive", "purrr",
                   "R.utils", "sf", "spatialEco", "terra",
                   "dbplyr", # needed for prepClimateLayers
-                  "PredictiveEcology/climateData@development (>= 2.2.3.9009)",
+                  "PredictiveEcology/climateData@modsForFireSense (>= 2.2.3.9011)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9046)",
                   "PredictiveEcology/LandR@development (>= 1.1.0.9064)",
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9060)",
@@ -94,6 +95,14 @@ defineModule(sim, list(
                        "are set by module parameters and must be identical for all variables.",
                        "See also <https://climatena.ca/Help2#_var> for all available climate variables."),
                        sourceURL = NA),
+    expectsInput("climateYearRecord", "data.table",
+                 desc = paste("Optional, for rerunning this module on a finished run whose simulation years",
+                              "are not calendar years (e.g. NRV): that run's record (`simYear`, `climateYear`)",
+                              "of the climate year used in each simulation year, from the `climateYear` module.",
+                              "When supplied, those climate years, not `times`, are checked against the years",
+                              "this module prepares. In a normal run `climateYear` writes it after this",
+                              "module's `init`, so it is not read."),
+                 sourceURL = NA),
     expectsInput("rasterToMatch", "SpatRaster",
                  desc = "template raster corresponding to `studyArea`.", sourceURL = NA),
     expectsInput("studyArea", "sf",
@@ -144,20 +153,59 @@ climateRastersToRewrite <- function(projectedType) {
   if (identical(projectedType, "hindcast")) "projected" else character(0)
 }
 
+## The simulation years a rerun serves: the load times of its inputs (`inputs(sim)`; `alreadyRun`
+## loads each saved output of the finished run at its save time) within `start`-`end`; all of
+## `start`-`end` if there are none.
+rerunSimYears <- function(inputs, start, end) {
+  lt <- as.numeric(inputs$loadTime)
+  yrs <- sort(unique(floor(lt[!is.na(lt) & lt >= start & lt <= end])))
+  if (length(yrs)) yrs else seq(floor(start), floor(end))
+}
+
+## `climateVariables` with the years of each element replaced by the climate years `record`
+## (`simYear`, `climateYear`) holds for `simYears`: historical up to the latest historical year,
+## projected after. Elements by period (normals) are left alone, and so are those whose `fun` needs
+## consecutive years from their own first year (`calcCumMDC`: each year starts from the previous
+## October's drought code), whose values would otherwise differ from the finished run's.
+climateVarsForRecord <- function(climateVariables, record, simYears) {
+  missingYrs <- setdiff(simYears, record$simYear)
+  if (length(missingYrs))
+    stop("canClimateData: `climateYearRecord` has no climate year for simulation year(s) ",
+         paste(missingYrs, collapse = ", "), call. = FALSE)
+  climYrs <- sort(unique(record$climateYear[record$simYear %in% simYears]))
+  latest <- latestHistoricalYear()
+  lapply(climateVariables, function(v) {
+    if (identical(v$fun, quote(calcCumMDC))) return(v)
+    if (!is.null(v$.dots$historical_years)) v$.dots$historical_years <- climYrs[climYrs <= latest]
+    if (!is.null(v$.dots$future_years)) v$.dots$future_years <- climYrs[climYrs > latest]
+    v
+  })
+}
+
 Init <- function(sim) {
-  ## When this module builds `climateVariables` it fetches `historicalClimateYears` and
-  ## `projectedClimateYears`, so the run's start must fall within those. A supplied
-  ## `climateVariables` has years this module cannot read, so only calendar years are required.
-  ## (`.inputObjects` sets the flag; it does not run when every input was supplied.)
-  fromParams <- isTRUE(mod$climateVariablesFromParams)
-  checkCalendarYears(start(sim), end(sim), module = "canClimateData",
-                     years = if (fromParams)
-                       c(P(sim)$historicalClimateYears, P(sim)$projectedClimateYears),
-                     hint = if (fromParams) {
-                       "Set `times` inside those years, or change `historicalClimateYears`/`projectedClimateYears`."
-                     } else {
-                       "`climateVariables` was supplied, so its years are not known here: set `times` to calendar years."
-                     })
+  ## A rerun of a finished run in model years (NRV) supplies that run's `climateYearRecord`: the
+  ## climate years that run used at the times its outputs are loaded here, and only those, are
+  ## prepared, whatever years `climateVariables` names. In a normal run the record does not exist yet
+  ## here (`climateYear` writes it, after this `init`; see `loadOrder`), so it is not read.
+  climateVars <- sim$climateVariables
+  rec <- sim$climateYearRecord
+  if (NROW(rec)) {
+    climateVars <- climateVarsForRecord(climateVars, rec, rerunSimYears(inputs(sim), start(sim), end(sim)))
+  } else {
+    ## When this module builds `climateVariables` it fetches `historicalClimateYears` and
+    ## `projectedClimateYears`, so the run's start must fall within those. A supplied
+    ## `climateVariables` has years this module cannot read, so only calendar years are required.
+    ## (`.inputObjects` sets the flag; it does not run when every input was supplied.)
+    fromParams <- isTRUE(mod$climateVariablesFromParams)
+    checkCalendarYears(start(sim), end(sim), module = "canClimateData",
+                       years = if (fromParams)
+                         c(P(sim)$historicalClimateYears, P(sim)$projectedClimateYears),
+                       hint = if (fromParams) {
+                         "Set `times` inside those years, or change `historicalClimateYears`/`projectedClimateYears`."
+                       } else {
+                         "`climateVariables` was supplied, so its years are not known here: set `times` to calendar years."
+                       })
+  }
   stopifnot(P(sim)$projectedType %in% c("forecast", "hindcast"))
 
   ## separate intermediate outputs from raw inputs, to reduce file conflicts on shared drives
@@ -202,7 +250,7 @@ Init <- function(sim) {
   SSP <- P(sim)$climateSSP
 
   climateRasters <- prepClimateLayers(
-    climateVarsList = sim$climateVariables,
+    climateVarsList = climateVars,
     srcdir = climatePath,    ## 'src' is the place for raw inputs, downloaded from Google Drive
     dstdir = climatePathOut, ## 'dst' is the place for intermediate + final outputs
     gcm = GCM,
