@@ -226,10 +226,11 @@ Init <- function(sim) {
   ## separate intermediate outputs from raw inputs, to reduce file conflicts on shared drives
   climatePath <- file.path(inputPath(sim), "climate") |> checkPath(create = TRUE) |> asPath(1)
   # climatePath <- file.path(inputPath(sim), "climate", Par$.studyAreaName) |> checkPath(create = TRUE) |> asPath(1)
-  climatePathOut <- if (is.null(P(sim)$outputDir) || is.na(P(sim)$outputDir)) {
-    file.path(outputPath(sim), "climate") |> checkPath(create = TRUE) |> asPath(1)
-  } else {
+  sharedOut <- !(is.null(P(sim)$outputDir) || is.na(P(sim)$outputDir))
+  climatePathOut <- if (sharedOut) {
     file.path(P(sim)$outputDir) |> checkPath(create = TRUE) |> asPath(1)
+  } else {
+    file.path(outputPath(sim), "climate") |> checkPath(create = TRUE) |> asPath(1)
   }
 
   if (is.na(P(sim)$.studyAreaName)) {
@@ -276,7 +277,9 @@ Init <- function(sim) {
     rasterToMatch = sim$rasterToMatch,
     currentModuleName = "canClimateData"
   ) |>
-    Cache(omitArgs = c("srcdir", "dstdir"), useCloud = Par$.useCloud) ## TODO: improve use of cache
+    ## dstdir is keyed only for a shared outputDir: omitted, an entry made with the per-run default
+    ## would be hit and its files restored under outputPath(sim), leaving outputDir unused
+    Cache(omitArgs = c("srcdir", if (!sharedOut) "dstdir"), useCloud = Par$.useCloud) ## TODO: improve use of cache
 
   ## rename list elements and layers to match expected names downstream
   names(climateRasters) <- names(sim$climateVariables)
