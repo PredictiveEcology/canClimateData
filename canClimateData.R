@@ -25,7 +25,7 @@ defineModule(sim, list(
                   "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9046)",
                   "PredictiveEcology/LandR@development (>= 1.1.0.9064)",
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9060)",
-                  "PredictiveEcology/SpaDES.core@development (>= 2.1.5)",
+                  "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9070)",
                   "PredictiveEcology/SpaDES.tools@development (>= 2.0.4.9002)"),
   parameters = rbind(
     defineParameter("bufferDist", "numeric", 20000, NA, NA,
