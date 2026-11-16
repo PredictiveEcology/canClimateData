@@ -1,7 +1,7 @@
 ---
 title: "canClimateData Manual"
 subtitle: "v.1.1.1.9000"
-date: "Last updated: 2026-11-14"
+date: "Last updated: 2026-11-16"
 output:
   bookdown::html_document2:
     toc: true
@@ -218,7 +218,7 @@ Table \@ref(tab:moduleParams-canClimateData) shows the full list of module param
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Directory path for prepared climate data rasters. User should specify a shared directory (e.g., when running multiple simulation replicates) to avoid multiple copies of the climate data. If not specified by the user, a subdirectory of the simulation output directory will be used (i.e., `file.path(outputPath(sim), 'climate')`. </td>
+   <td style="text-align:left;"> Directory path for prepared climate data rasters. User should specify a shared directory (e.g., when running multiple simulation replicates) to avoid multiple copies of the climate data. If not specified by the user, a subdirectory of the simulation output directory will be used (i.e., `file.path(outputPath(sim), 'climate')`. Event cache keys hold this value as given, so a different folder is a different key, and a machine-specific prefix is part of it. To let the same folder match on another machine, pass `reproducible::asPath(dir, nParentDirs)`: the key then holds only `dir`'s last `nParentDirs + 1` components, e.g. `asPath(dir, 2)` for `&lt;hindcast&gt;/&lt;ELF&gt;/climate`. </td>
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
