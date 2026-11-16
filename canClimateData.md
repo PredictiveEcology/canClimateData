@@ -1,7 +1,7 @@
 ---
 title: "canClimateData Manual"
-subtitle: "v.1.1.1.9000"
-date: "Last updated: 2026-11-05"
+subtitle: "v.1.1.1.9001"
+date: "Last updated: 2026-11-16"
 output:
   bookdown::html_document2:
     toc: true
@@ -128,6 +128,12 @@ See `?climateData::prepClimateLayers` for examples constructing a custom `climat
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
+   <td style="text-align:left;"> climateYearRecord </td>
+   <td style="text-align:left;"> data.table </td>
+   <td style="text-align:left;"> Optional, for rerunning this module on a finished run whose simulation years are not calendar years (e.g. NRV): that run's record (`simYear`, `climateYear`) of the climate year used in each simulation year, from the `climateYear` module. When supplied, those climate years, not `times`, are checked against the years this module prepares. In a normal run `climateYear` writes it after this module's `init`, so it is not read. </td>
+   <td style="text-align:left;"> NA </td>
+  </tr>
+  <tr>
    <td style="text-align:left;"> rasterToMatch </td>
    <td style="text-align:left;"> SpatRaster </td>
    <td style="text-align:left;"> template raster corresponding to `studyArea`. </td>
@@ -212,7 +218,7 @@ Table \@ref(tab:moduleParams-canClimateData) shows the full list of module param
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Directory path for prepared climate data rasters. User should specify a shared directory (e.g., when running multiple simulation replicates) to avoid multiple copies of the climate data. If not specified by the user, a subdirectory of the simulation output directory will be used (i.e., `file.path(outputPath(sim), 'climate')`. </td>
+   <td style="text-align:left;"> Directory path for prepared climate data rasters. User should specify a shared directory (e.g., when running multiple simulation replicates) to avoid multiple copies of the climate data. If not specified by the user, a subdirectory of the simulation output directory will be used (i.e., `file.path(outputPath(sim), 'climate')`. Event cache keys hold this value as given, so a different folder is a different key, and a machine-specific prefix is part of it. To let the same folder match on another machine, pass `reproducible::asPath(dir, nParentDirs)`: the key then holds only `dir`'s last `nParentDirs + 1` components, e.g. `asPath(dir, 2)` for `&lt;hindcast&gt;/&lt;ELF&gt;/climate`. </td>
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
@@ -227,10 +233,10 @@ Table \@ref(tab:moduleParams-canClimateData) shows the full list of module param
   <tr>
    <td style="text-align:left;"> projectedClimateYears </td>
    <td style="text-align:left;"> numeric </td>
-   <td style="text-align:left;"> 2011, 20.... </td>
+   <td style="text-align:left;"> 2017, 20.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> range of years captured by the projected climate data if `climateVariables` not supplied. </td>
+   <td style="text-align:left;"> range of years captured by the projected climate data if `climateVariables` not supplied. Starts in 2017 because the projected archive for tile 39 (CNRM-ESM2-1 ssp370) lacks 2013-2016, and observed climate now covers 1901-2024, so earlier projections are not needed. </td>
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
