@@ -25,7 +25,7 @@ defineModule(sim, list(
                   "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9046)",
                   "PredictiveEcology/LandR@development (>= 1.1.0.9064)",
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9060)",
-                  "PredictiveEcology/SpaDES.core@development (>= 2.1.5)",
+                  "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9047)", # defineParameter(cacheKey = FALSE)
                   "PredictiveEcology/SpaDES.tools@development (>= 2.0.4.9002)"),
   parameters = rbind(
     defineParameter("bufferDist", "numeric", 20000, NA, NA,
@@ -48,7 +48,8 @@ defineModule(sim, list(
                           "(e.g., when running multiple simulation replicates)",
                           "to avoid multiple copies of the climate data.",
                           "If not specified by the user, a subdirectory of the simulation output",
-                          "directory will be used (i.e., `file.path(outputPath(sim), 'climate')`.")),
+                          "directory will be used (i.e., `file.path(outputPath(sim), 'climate')`."),
+                    cacheKey = FALSE), # only where the files go: `prepClimateLayers()` leaves `dstdir` out of its key too
     defineParameter("projectedClimatePeriod", "character", NULL, NA, NA,
                     paste("period to use for projected climate normals",
                           "if `climateVariables` not supplied.")),

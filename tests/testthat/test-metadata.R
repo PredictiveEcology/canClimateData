@@ -51,3 +51,11 @@ test_that("projected climate years start in 2017", {
   pars <- stats::setNames(md$parameters$default, md$parameters$paramName)
   expect_identical(pars[["projectedClimateYears"]], 2017:2100)
 })
+
+test_that("`outputDir` is not part of the module's cache keys", {
+  ## it only says where the prepared climate files go (`Init()` leaves `dstdir` out of the
+  ## `prepClimateLayers()` key too), so a cache built on one machine can match on another
+  p <- SpaDES.core::moduleMetadata(module = moduleName, path = modulePath)$parameters
+  expect_false(p$cacheKey[p$paramName == "outputDir"])
+  expect_true(all(p$cacheKey[p$paramName != "outputDir"]))
+})
